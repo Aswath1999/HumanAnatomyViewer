@@ -53,7 +53,7 @@ public class AnatomyDataExplorer extends Application {
                 stage.close(); // or Platform.exit();
             });
 
-            // Monitor tree expansion state to toggle Collapse button
+            // Mqonitor tree expansion state to toggle Collapse button
             treeView.expandedItemCountProperty().addListener((obs, oldVal, newVal) -> {
                 collapseBtn.setDisable(!hasExpandedDescendants(treeView.getRoot()));
             });
