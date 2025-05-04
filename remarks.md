@@ -49,6 +49,7 @@ Make sure the module name matches your project structure, and update the `export
   * The overall structure needs significant improvement.
   * Your program is not able to handle multiple-word inputs (e.g. `"bone" "head"`). It only works with a single word or argument.
   * Package names in your classes are incorrect and inconsistent.
+  * The total number of relations and nodes in your output is incorrect. It looks like you're counting all lines directly from the file, including the **first line**, which is just a header. Please make sure to **exclude the header line** when calculating the number of relations and nodes. Keep this in mind for the next assignments.
 
 * **Functionality:**
 
@@ -70,3 +71,16 @@ Make sure the module name matches your project structure, and update the `export
 
 Please work in groups of two for this assignment.
 Find a group partner and make sure to add both of your names to the README.md file in your Git repository.
+
+
+
+### 💬 Code Comments
+
+Please make sure to **add meaningful comments** throughout your code — as much as possible.
+With tools like LLMs (e.g., ChatGPT or GitHub Copilot), it's easier than ever to generate good comments, so there’s no excuse to skip them.
+
+That said, please also **read and review the comments these tools generate** — make sure they actually match your code logic.
+
+Well-commented code makes it much easier for me (and others) to review and understand your work.
+
+
