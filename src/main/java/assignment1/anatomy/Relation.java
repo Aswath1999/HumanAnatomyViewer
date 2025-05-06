@@ -1,4 +1,6 @@
-package anatomy;
+package assignment1.anatomy;
+
+
 
 import java.io.IOException;
 import java.nio.file.Files;

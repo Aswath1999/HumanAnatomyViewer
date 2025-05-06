@@ -1,4 +1,4 @@
-package anatomy;
+package assignment1.anatomy;
 
 import java.util.*;
 
