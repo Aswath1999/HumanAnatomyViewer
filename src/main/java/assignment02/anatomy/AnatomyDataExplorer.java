@@ -1,11 +1,20 @@
 package assignment02.anatomy;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.net.URL;
+
+
+
 
 public class AnatomyDataExplorer extends Application {
 
@@ -30,11 +39,15 @@ public class AnatomyDataExplorer extends Application {
         root.setCenter(splitPane);
 
         try {
-            ANode rootNode = TreeLoader.load(
-                    "partof_parts_list_e.txt",
-                    "partof_element_parts.txt",
-                    "partof_inclusion_relation_list.txt"
-            );
+            System.out.println("File URL: " + getClass().getResource("/partof_parts_list_e.txt"));
+
+            String partsPath = getClass().getResource("/partof_parts_list_e.txt").getPath();
+            String elementsPath = getClass().getResource("/partof_element_parts.txt").getPath();
+            String relationsPath = getClass().getResource("/partof_inclusion_relation_list.txt").getPath();
+
+            ANode rootNode = TreeLoader.load(partsPath, elementsPath, relationsPath);
+
+
 
             TreeItem<ANode> rootItem = createTreeItemsRec(rootNode);
             treeView.setRoot(rootItem);
@@ -63,7 +76,7 @@ public class AnatomyDataExplorer extends Application {
 
 
 
-        } catch (IOException e) {
+        } catch (IOException  e) {
             e.printStackTrace();
             new Alert(Alert.AlertType.ERROR, "Error loading anatomy tree: " + e.getMessage()).showAndWait();
         }

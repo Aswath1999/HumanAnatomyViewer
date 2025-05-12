@@ -1,8 +1,9 @@
-package assignment02.anatomy;
+package assignment03.model;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 
 public class TreeLoader {
@@ -15,7 +16,7 @@ public class TreeLoader {
         Map<String, String> parentMap = new HashMap<>();
 
         // Step 1: Load partof_parts_list_e.txt
-        List<String> partsLines = Files.readAllLines(Path.of(partsFile));
+        List<String> partsLines = readLines(partsFile);
         for (String line : partsLines.subList(1, partsLines.size())) {
             String[] tokens = line.trim().split("\\t");
             if (tokens.length >= 3) {
@@ -25,7 +26,7 @@ public class TreeLoader {
         }
 
         // Step 2: Load partof_element_parts.txt
-        List<String> elementsLines = Files.readAllLines(Path.of(elementsFile));
+        List<String> elementsLines = readLines(elementsFile);
         for (String line : elementsLines.subList(1, elementsLines.size())) {
             String[] tokens = line.trim().split("\\t");
             if (tokens.length >= 3) {
@@ -34,7 +35,7 @@ public class TreeLoader {
         }
 
         // Step 3: Load partof_inclusion_relation_list.txt
-        List<String> relationsLines = Files.readAllLines(Path.of(relationsFile));
+        List<String> relationsLines = readLines(relationsFile);
         for (String line : relationsLines.subList(1, relationsLines.size())) {
             String[] tokens = line.trim().split("\\t");
             if (tokens.length >= 4) {
@@ -74,6 +75,18 @@ public class TreeLoader {
                 .filter(id -> !parentMap.containsKey(id))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No root node found"));
+
         return nodes.get(rootId);
+    }
+
+    private static List<String> readLines(String resourceName) throws IOException {
+        InputStream in = TreeLoader.class.getResourceAsStream("/" + resourceName);
+        if (in == null) {
+            throw new IOException("Resource not found: " + resourceName);
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            return reader.lines().toList();
+        }
     }
 }
