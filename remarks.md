@@ -181,9 +181,8 @@ listView.getItems().clear();
 
 This ensures the UI reflects the collapsed state accurately.
 
----
 
-### ✅ Points for Task 5: **1/2**
+* **Points:** ✅ **1/2**
 
 ---
 
