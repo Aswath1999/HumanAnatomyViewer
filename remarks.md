@@ -84,3 +84,124 @@ That said, please also **read and review the comments these tools generate** —
 Well-commented code makes it much easier for me (and others) to review and understand your work.
 
 
+---
+
+## 📘 Assignment 02 – Feedback
+
+---
+
+### **Task 1**
+
+* **Implementation:** The implementation is functionally correct.
+* **Functionality:** OK
+* **Points:** ✅ **4/4**
+
+---
+
+
+### **Task 2**
+
+* **Design:** The UI is mostly fine, but there are **multiple design and layout issues** that need to be addressed:
+
+#### ❌ Issue 1: Bye button is placed incorrectly
+
+It currently appears in the **top toolbar** alongside the Expand and Collapse buttons, which goes against the assignment's layout requirements.
+
+✅ **Suggested fix:** The Bye button should be moved to the **bottom** using a `ButtonBar`, like this:
+
+```java
+ButtonBar buttonBar = new ButtonBar();
+buttonBar.getButtons().add(byeBtn);
+root.setBottom(buttonBar);
+```
+
+🛠️ *I have already added this correction to your code.*
+
+* **Points:** ✅ **1/2**
+
+
+---
+
+### **Task 3**
+
+* **Implementation:** The implementation works, but the use of **hardcoded file paths** (`"data/partof_parts_list_e.txt"`, etc.) inside `AnatomyDataExplorer` is not ideal. These should be:
+
+  * Moved to `TreeLoader`, or
+  * Passed via command-line arguments, or
+  * Loaded using `getClass().getResourceAsStream(...)` from the `resources` folder.
+
+  This will make your code **more portable and maintainable**.
+* **Functionality:** OK
+* **Points:** ✅ **4/4**
+
+---
+
+### **Task 4**
+
+* **Design:** The layout and event-handling logic are appropriate. You correctly use a `ListView` to display `fileIds()` when a node is selected — exactly what the assignment asked for.
+* **Functionality:** OK
+* **Points:** ✅ **3/3**
+
+---
+
+### **Task 5**
+
+* **Design:** The helper methods like `expandAll()` and `collapseAll()` are good, and your use of event handlers is functional.
+
+* **Functionality:** Several functional issues were present:
+
+#### ❌ Issue 2: Collapse All does not fully collapse
+
+You call `rootItem.setExpanded(true)` immediately after collapsing, which re-expands the root and cancels the visual effect of the collapse. sometimes it shows all the file ids. 
+✅ *I removed that line so the full tree properly collapses.*
+
+#### ❌ Issue 3: Expand All keeps previous selection
+
+When clicking "Expand All", the previously selected node remains highlighted and its file IDs stay visible in the `ListView`, even though the context has changed.
+
+✅ **Suggested fix (already added):**
+
+```java
+treeView.getSelectionModel().clearSelection();
+listView.getItems().clear();
+```
+
+#### ❌ Issue 4: Clicking **Collapse All** shows **every file ID** in the list view
+
+This is **not expected behavior** — the `ListView` should only show file IDs for the **currently selected node**, and after collapsing the tree, **no node should remain selected**.
+
+But in your original code, the selection is not cleared, so the previously selected node stays active, and its file IDs continue to appear — which gives the impression that "everything" is being shown.
+
+🛠️ *I fixed this by clearing the selection and the `ListView` when collapsing the tree:*
+
+```java
+treeView.getSelectionModel().clearSelection();
+listView.getItems().clear();
+```
+
+This ensures the UI reflects the collapsed state accurately.
+
+---
+
+### ✅ Points for Task 5: **1/2**
+
+---
+
+### ✅ **Total: 13/15**
+
+
+
+---
+
+### 📌 Final Reminder
+
+* ❓ If **any part of the assignment or feedback is unclear**, please feel free to ask during the tutorial or email me directly.
+* ⚠️ Avoid hardcoding file paths. Use:
+
+  ```java
+  getClass().getResourceAsStream("/assignment02/partof_parts_list_e.txt")
+  ```
+
+  or similar logic to load from the `resources` folder. This improves cross-platform compatibility and project cleanliness.
+
+
