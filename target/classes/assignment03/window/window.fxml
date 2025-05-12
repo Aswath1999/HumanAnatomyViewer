@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="assignment03.window.WindowController">
+
+   <!-- Top menu bar -->
+   <top>
+      <VBox>
+         <MenuBar>
+            <menus>
+               <Menu text="File">
+                  <items>
+                     <MenuItem fx:id="closeMenuItem" text="Close" />
+                  </items>
+               </Menu>
+               <Menu text="Edit">
+                  <items>
+                     <MenuItem fx:id="expandAllMenuItem" text="Expand All" />
+                     <MenuItem fx:id="collapseAllMenuItem" text="Collapse All" />
+                     <MenuItem fx:id="selectAllMenuItem" text="Select All" />
+                     <MenuItem fx:id="selectNoneMenuItem" text="Select None" />
+                  </items>
+               </Menu>
+               <Menu text="Help">
+                  <items>
+                     <MenuItem fx:id="aboutMenuItem" text="About" />
+                  </items>
+               </Menu>
+            </menus>
+         </MenuBar>
+
+         <!-- Button bar -->
+         <HBox spacing="10">
+            <padding>
+               <Insets bottom="10" left="10" right="10" top="10" />
+            </padding>
+            <Button fx:id="expandAllButton" text="Expand All" />
+            <Button fx:id="collapseAllButton" text="Collapse All" />
+            <Button fx:id="selectAllButton" text="Select All" />
+            <Button fx:id="selectNoneButton" text="Select None" />
+         </HBox>
+      </VBox>
+   </top>
+
+   <!-- Center content: SplitPane -->
+   <center>
+      <SplitPane dividerPositions="0.5" orientation="HORIZONTAL">
+         <!-- Left: TreeView -->
+         <TreeView fx:id="anatomyTreeView" prefHeight="525.0" prefWidth="298.0" />
+
+         <!-- Right: FlowPane in ScrollPane -->
+         <ScrollPane fitToWidth="true">
+            <content>
+               <FlowPane fx:id="wordCloudPane" hgap="10" vgap="10">
+                  <padding>
+                     <Insets bottom="10" left="10" right="10" top="10" />
+                  </padding>
+               </FlowPane>
+            </content>
+         </ScrollPane>
+      </SplitPane>
+   </center>
+</BorderPane>
