@@ -1,1 +1,3 @@
-Please find partner, if you need your edited code I can send you zip.
+Assignment partners:
+Merle Trautmann,
+Aswath Chandrasekaran
