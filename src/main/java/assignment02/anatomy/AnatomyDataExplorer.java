@@ -28,7 +28,7 @@ public class AnatomyDataExplorer extends Application {
         Button collapseBtn = new Button("Collapse");
         Button byeBtn = new Button("Bye");
 
-        ToolBar toolBar = new ToolBar(expandBtn, collapseBtn, byeBtn);
+        ToolBar toolBar = new ToolBar(expandBtn, collapseBtn);
 
         SplitPane splitPane = new SplitPane();
         splitPane.getItems().addAll(treeView, listView);
@@ -37,6 +37,9 @@ public class AnatomyDataExplorer extends Application {
         BorderPane root = new BorderPane();
         root.setTop(toolBar);
         root.setCenter(splitPane);
+        ButtonBar buttonBar = new ButtonBar();
+        buttonBar.getButtons().add(byeBtn);
+        root.setBottom(buttonBar);
 
         try {
             System.out.println("File URL: " + getClass().getResource("/partof_parts_list_e.txt"));
@@ -54,13 +57,20 @@ public class AnatomyDataExplorer extends Application {
             treeView.setShowRoot(true);
 
             //  Expand All button
-            expandBtn.setOnAction(e -> expandAll(rootItem));
+            expandBtn.setOnAction(e -> {
+                expandAll(rootItem);
+                treeView.getSelectionModel().clearSelection(); // Clear selection
+                listView.getItems().clear();                   // Clear ListView
+            });
+
 
             //  Collapse All button
             collapseBtn.setOnAction(e -> {
                 collapseAll(rootItem);
-                rootItem.setExpanded(true); // Keep root expanded (or not, up to you)
+                treeView.getSelectionModel().clearSelection(); // Clear selection
+                listView.getItems().clear();                   // Clear ListView
             });
+
 
             //  Bye button
             byeBtn.setOnAction(e -> {
@@ -108,6 +118,7 @@ public class AnatomyDataExplorer extends Application {
     private void expandAll(TreeItem<?> item) {
         if (item != null && !item.isLeaf()) {
             item.setExpanded(true);
+
             for (TreeItem<?> child : item.getChildren()) {
                 expandAll(child);
             }
