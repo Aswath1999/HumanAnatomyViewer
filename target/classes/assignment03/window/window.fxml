@@ -35,7 +35,10 @@
                         <accelerator>
                            <KeyCodeCombination alt="UP" code="E" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                         </accelerator></MenuItem>
-                     <MenuItem fx:id="collapseAllMenuItem" text="Collapse All" />
+                     <MenuItem fx:id="collapseAllMenuItem" onAction="#onCollapseAll" text="Collapse All">
+                        <accelerator>
+                           <KeyCodeCombination alt="UP" code="C" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                        </accelerator></MenuItem>
                      <MenuItem fx:id="selectAllMenuItem" onAction="#onSelectAll" text="Select All">
                         <accelerator>
                            <KeyCodeCombination alt="UP" code="A" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
