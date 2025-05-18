@@ -203,4 +203,147 @@ This ensures the UI reflects the collapsed state accurately.
 
   or similar logic to load from the `resources` folder. This improves cross-platform compatibility and project cleanliness.
 
+---
+
+## 📘 Assignment 03 – Feedback
+
+---
+
+### **Task 1**
+
+**Design:**
+All required components were implemented, but the **structure is not fully correct**.
+
+You should:
+
+* Start with an `AnchorPane`, and place a `BorderPane` inside it.
+* The `MenuBar → Menu → MenuItem` structure should be directly added to the top of the `BorderPane`.
+* `SplitPane` should **not** be placed inside an `HBox`.
+* Instead, insert the `SplitPane` into a **new `AnchorPane`**, and ensure it resizes correctly when the window size changes.
+
+These layout issues suggest a misunderstanding of JavaFX’s scene graph. Also, **there was no image provided for the scene graph**, although the description suggests one should be there.
+
+I’m not heavily penalizing this since it’s part of the learning curve — but make sure it’s fixed in future projects.
+
+**Points:** 2/3
+
+---
+
+### **Task 2**
+
+**Implementation:**
+Your implementation is mostly correct.
+
+However, this method:
+
+```java
+public static ArrayList<String> extractWords(TreeItem<ANode> item) {
+    ArrayList<String> words = new ArrayList<>();
+    extractRecursive(item, words);
+    return words;
+}
+```
+
+...and its helper `extractRecursive(...)` are **better suited to a utility class or `WordCloudItem`**, not `Model`. Keeping separation of concerns will make your code easier to maintain.
+
+**Points:** 1/1
+
+---
+
+### **Task 3**
+
+**Implementation:**
+Works fine.
+
+**Functionality:**
+Also correct.
+However — your **answer to theory question 3.3 is missing**.
+
+**Points:** 1/2
+
+---
+
+### **Task 4**
+
+**Implementation & Functionality:**
+
+✅ Your implementation works, and all required functionality is present.
+
+⚠ However:
+
+* The keyboard shortcuts seem **Windows-specific** — consider supporting `Cmd` on macOS too using JavaFX cross-platform key handling.
+
+* ❗ Logic issue with **Expand All + Select All**:
+
+  > Example: Select “mouth” → Expand All → Select All →
+  > It only selects all after **two clicks**, and sometimes **includes unintended parents**.
+
+  This suggests the TreeView’s selection model is shifting automatically during expansion/collapse. You’ll need to investigate this further and make the selection behavior more robust.
+
+---
+
+**Fix applied to `handleSelectAll()`**
+
+You correctly replaced:
+
+```java
+if (selected.isEmpty()) {
+    // ...
+} else {
+    selectionModel.clearSelection();
+    for (TreeItem<ANode> item : selected) {
+        List<TreeItem<ANode>> descendants = new ArrayList<>();
+        collectDescendants(item, descendants);
+        descendants.forEach(selectionModel::select);
+    }
+}
+```
+
+✅ With this version:
+
+```java
+public void handleSelectAll() {
+    var selectionModel = treeView.getSelectionModel();
+    List<TreeItem<ANode>> selectedItems = new ArrayList<>(selectionModel.getSelectedItems());
+
+    selectionModel.clearSelection(); // ❗ Clear AFTER copying selection
+
+    for (TreeItem<ANode> item : selectedItems) {
+        selectionModel.select(item); // ✅ Re-select the originally selected node
+
+        List<TreeItem<ANode>> descendants = new ArrayList<>();
+        collectDescendants(item, descendants);
+
+        for (TreeItem<ANode> descendant : descendants) {
+            selectionModel.select(descendant); // ✅ Select all children
+        }
+    }
+}
+```
+
+This is the correct fix — well done.
+
+📌 Other students: please fix this in your submissions.
+
+**Points:** 3/3
+
+---
+
+### **Task 5**
+
+**Design:**
+All required menu items are present and correctly implemented.
+
+**Points:** 1/1
+
+---
+
+### ✅ **Total: 8/10**
+
+Good effort overall.
+I'm pointing out these issues for learning purposes — only minor points were deducted here.
+
+⚠ **But be careful** — your **project submission** will be reviewed by **three evaluators**, and issues like structure, missing theory, and improper controller logic **can affect your grade**.
+
+Use this feedback to polish and correct things early. Let me know if you'd like support reviewing your controller, FXML, or interaction logic again.
 
