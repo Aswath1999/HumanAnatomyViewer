@@ -219,7 +219,7 @@ You should:
 * Start with an `AnchorPane`, and place a `BorderPane` inside it.
 * The `MenuBar → Menu → MenuItem` structure should be directly added to the top of the `BorderPane`.
 * `SplitPane` should **not** be placed inside an `HBox`.
-* Instead, insert the `SplitPane` into a **new `AnchorPane`**, and ensure it resizes correctly when the window size changes.
+* Instead, insert the `SplitPane` into a ** same `BorderPane`**, and ensure it resizes correctly when the window size changes.
 
 These layout issues suggest a misunderstanding of JavaFX’s scene graph. Also, **there was no image provided for the scene graph**, although the description suggests one should be there.
 
