@@ -38,8 +38,17 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include> <!-- Simpler: all files -->
+                </includes>
+            </resource>
+        </resources>
+
         <plugins>
-            <!-- Java Compiler Plugin -->
+            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -49,16 +58,8 @@
                 </configuration>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <includes>
-                    <include>**/*.txt</include> <!-- ensure .txt is included -->
-                    <include>**/*.fxml</include>
-                </includes>
-            </resource>
-        </resources>
     </build>
+
 
     <profiles>
         <!-- Assignment 1: CLI -->
@@ -127,7 +128,29 @@
                 </plugins>
             </build>
         </profile>
-
+        <profile>
+            <id>assignment4</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.openjfx</groupId>
+                        <artifactId>javafx-maven-plugin</artifactId>
+                        <version>0.0.8</version>
+                        <configuration>
+                            <mainClass>assignment4.CladogramMain</mainClass>
+                            <module>Advanced_Java_for_Bioinformatics</module>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <!-- Assignment 2: GUI -->
         <profile>
             <id>assignment2-gui</id>
