@@ -143,7 +143,7 @@ public class WindowPresenter {
      * Selects all expanded nodes if none are selected;
      * otherwise selects all descendants of the selected nodes.
      */
-    public void handleSelectAll() {
+   /* public void handleSelectAll() {
         var selectionModel = treeView.getSelectionModel();
         List<TreeItem<ANode>> selected = selectionModel.getSelectedItems();
 
@@ -158,6 +158,23 @@ public class WindowPresenter {
                 List<TreeItem<ANode>> descendants = new ArrayList<>();
                 collectDescendants(item, descendants);
                 descendants.forEach(selectionModel::select);
+            }
+        }
+    }*/
+    public void handleSelectAll() {
+        var selectionModel = treeView.getSelectionModel();
+        List<TreeItem<ANode>> selectedItems = new ArrayList<>(selectionModel.getSelectedItems());
+
+        selectionModel.clearSelection(); // ❗ Clear AFTER copying selection
+
+        for (TreeItem<ANode> item : selectedItems) {
+            selectionModel.select(item); // ✅ Re-select the originally selected node
+
+            List<TreeItem<ANode>> descendants = new ArrayList<>();
+            collectDescendants(item, descendants);
+
+            for (TreeItem<ANode> descendant : descendants) {
+                selectionModel.select(descendant); // ✅ Select all children
             }
         }
     }
