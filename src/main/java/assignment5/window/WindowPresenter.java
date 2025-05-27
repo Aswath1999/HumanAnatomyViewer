@@ -212,7 +212,16 @@ public class WindowPresenter {
 
 
                 //contentGroup.getChildren().clear();  // Remove axes or old model/**/
-                contentGroup.getChildren().add(meshView);  // Add new model
+                //contentGroup.getChildren().add(meshView);  // Add new model
+// Clear only the model, not the axes (assuming axes is still first child)
+                if (contentGroup.getChildren().size() > 1) {
+                    contentGroup.getChildren().remove(1, contentGroup.getChildren().size());
+                }
+
+// Add the model as a child, *alongside* the axes in contentGroup
+                contentGroup.getChildren().add(meshView);
+
+
                 meshView.getTransforms().addAll(
                         new Rotate(-45, Rotate.Y_AXIS),       // Turn to face a cube corner
                         new Rotate(-35.26, Rotate.X_AXIS)     // Tilt it upward
