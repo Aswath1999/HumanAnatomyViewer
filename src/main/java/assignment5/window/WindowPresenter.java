@@ -145,12 +145,22 @@ public class WindowPresenter {
         applyGlobalRotation(contentGroup, Rotate.Y_AXIS, angle);
     }
 
-    private static void applyGlobalRotation(Group contentGroup, Point3D axis, double angle) {
+
+    // this does relatice to the object
+/*    private static void applyGlobalRotation(Group contentGroup, Point3D axis, double angle) {
         Transform currentTransform = contentGroup.getLocalToParentTransform();
         Rotate rotate = new Rotate(angle, axis);
         Transform newTransform = rotate.createConcatenation(currentTransform);
+
         contentGroup.getTransforms().setAll(newTransform);
-    }
+    }*/
+
+    // relative to the screen
+private static void applyGlobalRotation(Group contentGroup, Point3D axis, double angle) {
+    Rotate rotate = new Rotate(angle, axis);
+    contentGroup.getTransforms().add(0, rotate);  // Prepend to apply before existing transforms
+}
+
 
     /**
      * Adds a temporary blue border around a clicked button.
@@ -197,13 +207,15 @@ public class WindowPresenter {
 
                 // === Align corner to origin ===
                 Bounds bounds = meshView.getBoundsInLocal();
-                double minX = bounds.getMinX();
-                double minY = bounds.getMinY();
-                double minZ = bounds.getMinZ();
+                double centerX = (bounds.getMinX() + bounds.getMaxX()) / 2;
+                double centerY = (bounds.getMinY() + bounds.getMaxY()) / 2;
+                double centerZ = (bounds.getMinZ() + bounds.getMaxZ()) / 2;
 
-                meshView.setTranslateX(-minX);
-                meshView.setTranslateY(-minY);
-                meshView.setTranslateZ(-minZ);
+// Center the model at origin
+                meshView.setTranslateX(-centerX);
+                meshView.setTranslateY(-centerY);
+                meshView.setTranslateZ(-centerZ);
+
 
                 // === Wrap in group to isolate scale ===
                 Group modelGroup = new Group(meshView);
