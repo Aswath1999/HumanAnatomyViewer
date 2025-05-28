@@ -13,7 +13,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.PointLight;
 import javafx.scene.AmbientLight;
 import javafx.scene.transform.Rotate;
-import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.stage.FileChooser;
@@ -23,155 +22,167 @@ import javafx.scene.paint.PhongMaterial;
 import java.io.File;
 import javafx.scene.image.Image;
 
-
 public class WindowPresenter {
 
     private final WindowController controller;
 
-    private final Group root3D = new Group();         // Root node for the 3D scene
-    private final Group contentGroup = new Group();   // Group holding the 3D axes or models
-    private final PerspectiveCamera camera = new PerspectiveCamera(true);
+    // Root 3D scene graph nodes
+    private final Group root3D = new Group();       // Full 3D scene root
+    private final Group contentGroup = new Group(); // Holds model and axes (everything that's transformable)
+    private final PerspectiveCamera camera = new PerspectiveCamera(true); // Perspective camera for 3D view
+
+    private static final double AXES_LENGTH = 200.0; // Reference size for the axes and bounding cube
 
     public WindowPresenter(WindowController controller) {
         this.controller = controller;
-        setup3DScene();      // Build axes, lights, camera
-        hookUpControls();    // Connect UI controls
+        setup3DScene();     // Initialize the 3D scene with camera, lighting, and axes
+        hookUpControls();   // Link UI controls to behavior
     }
 
+    /**
+     * Set up the 3D scene components:
+     * - Axes
+     * - Lighting
+     * - Camera
+     * - SubScene embedded in the UI
+     */
     private void setup3DScene() {
-        // === Axes ===
-        Axes axes = new Axes(200);  // X/Y/Z visual axes
+        // Add coordinate axes (X: red, Y: green, Z: blue)
+        Axes axes = new Axes(AXES_LENGTH);
         contentGroup.getChildren().add(axes);
 
-        // === Lighting ===
+        // Add point light to simulate directional lighting
         PointLight pointLight = new PointLight(Color.WHITE);
         pointLight.setTranslateX(-500);
         pointLight.setTranslateY(-500);
         pointLight.setTranslateZ(-500);
 
+        // Add ambient light for even base illumination
         AmbientLight ambientLight = new AmbientLight(Color.DARKGRAY);
         root3D.getChildren().addAll(contentGroup, pointLight, ambientLight);
 
-        // === Camera ===
+        // Set up perspective camera
         camera.setNearClip(0.1);
         camera.setFarClip(10000);
-        camera.setTranslateZ(-900);
+        camera.setTranslateZ(-900); // Pull back to view content
 
-        // === SubScene for 3D rendering ===
+        // Create a SubScene for rendering 3D content
         SubScene subScene = new SubScene(root3D, 600, 600, true, SceneAntialiasing.BALANCED);
         subScene.setCamera(camera);
-        subScene.setFill(Color.SKYBLUE);
+        subScene.setFill(Color.SKYBLUE); // Background color
 
-        // === Attach to centerPane from FXML ===
+        // Bind subScene size to UI pane and add to layout
         Pane centerPane = controller.getCenterPane();
         subScene.widthProperty().bind(centerPane.widthProperty());
         subScene.heightProperty().bind(centerPane.heightProperty());
         centerPane.getChildren().add(subScene);
 
-        // Start with identity transform
+        // Initial transform (identity)
         contentGroup.getTransforms().setAll(new Rotate(0, Rotate.X_AXIS));
     }
 
+    /**
+     * Connect all UI controls (buttons and menu items) to their respective 3D operations.
+     */
     private void hookUpControls() {
-        // === Buttons ===
+        // Buttons: rotate, zoom, reset
         controller.getRotateLeftButton().setOnAction(e -> {
-            rotateY(-10);
+            rotateY(10); // Rotate around Y axis to the left (CCW)
             highlightButton(controller.getRotateLeftButton());
         });
 
         controller.getRotateRightButton().setOnAction(e -> {
-            rotateY(10);
+            rotateY(-10); // Rotate around Y axis to the right (CW)
             highlightButton(controller.getRotateRightButton());
         });
 
         controller.getRotateUpButton().setOnAction(e -> {
-            rotateX(-10);
+            rotateX(-10); // Tilt up (rotate around global X axis)
             highlightButton(controller.getRotateUpButton());
         });
 
         controller.getRotateDownButton().setOnAction(e -> {
-            rotateX(10);
+            rotateX(10); // Tilt down
             highlightButton(controller.getRotateDownButton());
         });
 
         controller.getZoomInButton().setOnAction(e -> {
-            camera.setTranslateZ(camera.getTranslateZ() + 50);
+            camera.setTranslateZ(camera.getTranslateZ() + 50); // Move camera closer
             highlightButton(controller.getZoomInButton());
         });
 
         controller.getZoomOutButton().setOnAction(e -> {
-            camera.setTranslateZ(camera.getTranslateZ() - 50);
+            camera.setTranslateZ(camera.getTranslateZ() - 50); // Move camera farther
             highlightButton(controller.getZoomOutButton());
         });
 
         controller.getResetButton().setOnAction(e -> {
-            resetView();
+            resetView(); // Reset camera and rotation
             highlightButton(controller.getResetButton());
         });
 
-        // === Menu Items ===
-        controller.getMenuRotateLeft().setOnAction(e -> rotateY(-10));
-        controller.getMenuRotateRight().setOnAction(e -> rotateY(10));
+        // Menu items (same actions as buttons, no highlight)
+        controller.getMenuRotateLeft().setOnAction(e -> rotateY(10));
+        controller.getMenuRotateRight().setOnAction(e -> rotateY(-10));
         controller.getMenuRotateUp().setOnAction(e -> rotateX(-10));
         controller.getMenuRotateDown().setOnAction(e -> rotateX(10));
-
         controller.getMenuZoomIn().setOnAction(e -> camera.setTranslateZ(camera.getTranslateZ() + 50));
         controller.getMenuZoomOut().setOnAction(e -> camera.setTranslateZ(camera.getTranslateZ() - 50));
         controller.getMenuReset().setOnAction(e -> resetView());
 
-        // === Close ===
+        // File menu: open and close
         controller.getCloseButton().setOnAction(e -> closeWindow());
         controller.getMenuClose().setOnAction(e -> closeWindow());
-
         controller.getMenuOpen().setOnAction(e -> openObjFile());
-
     }
 
+    // Close the window by accessing the stage
     private void closeWindow() {
         Stage stage = (Stage) controller.getCloseButton().getScene().getWindow();
         stage.close();
     }
 
+    // Reset the view to default camera position and no rotation
     private void resetView() {
-        contentGroup.getTransforms().setAll(new Rotate(0, Rotate.X_AXIS));
+        contentGroup.getTransforms().clear();
         camera.setTranslateZ(-900);
     }
 
+    // Apply rotation along screen-aligned X axis
     private void rotateX(double angle) {
         applyGlobalRotation(contentGroup, Rotate.X_AXIS, angle);
     }
 
+    // Apply rotation along screen-aligned Y axis
     private void rotateY(double angle) {
         applyGlobalRotation(contentGroup, Rotate.Y_AXIS, angle);
     }
 
-
-    // this does relatice to the object
-/*    private static void applyGlobalRotation(Group contentGroup, Point3D axis, double angle) {
-        Transform currentTransform = contentGroup.getLocalToParentTransform();
+    /**
+     * Apply a global (screen-space) rotation around a fixed axis.
+     * New rotations are added at the front of the list, so they are not affected by existing ones.
+     */
+    private static void applyGlobalRotation(Group group, Point3D axis, double angle) {
         Rotate rotate = new Rotate(angle, axis);
-        Transform newTransform = rotate.createConcatenation(currentTransform);
-
-        contentGroup.getTransforms().setAll(newTransform);
-    }*/
-
-    // relative to the screen
-private static void applyGlobalRotation(Group contentGroup, Point3D axis, double angle) {
-    Rotate rotate = new Rotate(angle, axis);
-    contentGroup.getTransforms().add(0, rotate);  // Prepend to apply before existing transforms
-}
-
+        group.getTransforms().add(0, rotate); // Prepend for global effect
+    }
 
     /**
-     * Adds a temporary blue border around a clicked button.
+     * Adds a temporary visual border effect to indicate which button was clicked.
      */
     private void highlightButton(Button button) {
-        button.setStyle("-fx-border-color: blue; ");
-
+        button.setStyle("-fx-border-color: blue;");
         PauseTransition pause = new PauseTransition(Duration.millis(300));
-        pause.setOnFinished(e -> button.setStyle("-fx-border-color: transparent; "));
+        pause.setOnFinished(e -> button.setStyle("-fx-border-color: transparent;"));
         pause.play();
     }
+
+    /**
+     * Load and display an OBJ 3D model:
+     * - Center it at origin
+     * - Uniformly scale it to fit the axes box
+     * - Apply material and texture
+     */
     private void openObjFile() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open OBJ File");
@@ -180,70 +191,60 @@ private static void applyGlobalRotation(Group contentGroup, Point3D axis, double
 
         if (file != null) {
             try {
+                // Load mesh from file
                 TriangleMesh mesh = ObjParser.load(file.getAbsolutePath());
                 MeshView meshView = new MeshView(mesh);
 
-                // === Material setup ===
+                // Set up material and texture
                 PhongMaterial material = new PhongMaterial();
-                material.setSpecularColor(Color.WHITE); // Highlight
-                String objPath = file.getAbsolutePath();
-                String texturePath = objPath.substring(0, objPath.lastIndexOf('.')) + ".png";
-                File textureFile = new File(texturePath);
-
+                material.setSpecularColor(Color.WHITE);
+                File textureFile = new File(file.getAbsolutePath().replace(".obj", ".png"));
                 if (textureFile.exists()) {
-                    Image textureImage = new Image(textureFile.toURI().toString());
-                    material.setDiffuseMap(textureImage);
+                    material.setDiffuseMap(new Image(textureFile.toURI().toString()));
                 } else {
-                    material.setDiffuseColor(Color.GREEN);
+                    material.setDiffuseColor(Color.GREEN); // Fallback color
                 }
-
                 meshView.setMaterial(material);
 
-                // === Clear previous model (keep axes) ===
-                contentGroup.getTransforms().clear(); // Reset rotation
-                if (contentGroup.getChildren().size() > 1) {
-                    contentGroup.getChildren().remove(1, contentGroup.getChildren().size());
-                }
-
-                // === Align corner to origin ===
+                // Get bounds and compute center
                 Bounds bounds = meshView.getBoundsInLocal();
                 double centerX = (bounds.getMinX() + bounds.getMaxX()) / 2;
                 double centerY = (bounds.getMinY() + bounds.getMaxY()) / 2;
                 double centerZ = (bounds.getMinZ() + bounds.getMaxZ()) / 2;
 
-// Center the model at origin
+                // Move model center to origin
                 meshView.setTranslateX(-centerX);
                 meshView.setTranslateY(-centerY);
                 meshView.setTranslateZ(-centerZ);
 
-
-                // === Wrap in group to isolate scale ===
-                Group modelGroup = new Group(meshView);
-
+                // Scale model to fit into the 200×200×200 cube
                 double maxDim = Math.max(bounds.getWidth(), Math.max(bounds.getHeight(), bounds.getDepth()));
-                double scaleX = 200 / bounds.getWidth();
-                double scaleY = 200 / bounds.getHeight();
-                double scaleZ = 200 / bounds.getDepth();
+                double scale = AXES_LENGTH / maxDim;
 
-                modelGroup.setScaleX(scaleX);
-                modelGroup.setScaleY(scaleY);
-                modelGroup.setScaleZ(scaleZ);
+                // Wrap in group for unified transformation
+                Group modelGroup = new Group(meshView);
+                modelGroup.setScaleX(scale);
+                modelGroup.setScaleY(scale);
+                modelGroup.setScaleZ(scale);
 
+                // Clear previous model (but keep axes)
+                contentGroup.getTransforms().clear();
+                if (contentGroup.getChildren().size() > 1) {
+                    contentGroup.getChildren().remove(1, contentGroup.getChildren().size());
+                }
 
-                // === Add to scene ===
+                // Add model to scene
                 contentGroup.getChildren().add(modelGroup);
 
-                // === (Optional) Rotate whole scene for better view ===
+                // Initial view angle (optional)
                 contentGroup.getTransforms().addAll(
                         new Rotate(-45, Rotate.Y_AXIS),
                         new Rotate(-35.26, Rotate.X_AXIS)
                 );
 
             } catch (Exception ex) {
-                ex.printStackTrace();
+                ex.printStackTrace(); // Print error if something goes wrong
             }
         }
     }
-
-
 }
