@@ -9,8 +9,7 @@ import javafx.scene.transform.Translate;
 
 /**
  * Axes class that creates 3 cylinders representing coordinate axes.
- * The cylinders are aligned so that their bases meet at the origin,
- * effectively "gluing" their ends together.
+ * The cylinders originate from the corner of the cube and stop near its surface.
  */
 public class Axes extends Group {
 
@@ -19,47 +18,43 @@ public class Axes extends Group {
 
     /**
      * Constructor to create axes with specified length.
-     * @param length Length of each axis cylinder.
+     * @param length Length from origin to end of each axis.
      */
     public Axes(double length) {
         double radius = length * AXIS_RADIUS_RATIO;
 
-        // Create red X axis group
+        // Apply a small margin to pull axis tips inward from exact cube face
+        double effectiveLength = length * 0.98;  // Slightly shorter to avoid visual overshoot
+
+        // Red X Axis
         Group xAxisGroup = new Group();
-        Cylinder xAxis = new Cylinder(radius, length);
+        Cylinder xAxis = new Cylinder(radius, effectiveLength);
         xAxis.setMaterial(makeMaterial(Color.RED));
-        // Move cylinder so base is at origin: translate by length/2 along Y in local coords
-        xAxis.getTransforms().add(new Translate(0, length / 2, 0));
-        // Rotate group to align cylinder along X axis
+        xAxis.getTransforms().add(new Translate(0, effectiveLength / 2, 0));
         xAxisGroup.getTransforms().add(new Rotate(-90, Rotate.Z_AXIS));
         xAxisGroup.getChildren().add(xAxis);
 
-        // Create green Y axis group
+        // Green Y Axis
         Group yAxisGroup = new Group();
-        Cylinder yAxis = new Cylinder(radius, length);
+        Cylinder yAxis = new Cylinder(radius, effectiveLength);
         yAxis.setMaterial(makeMaterial(Color.GREEN));
-        // Move cylinder so base is at origin
-        yAxis.getTransforms().add(new Translate(0, length / 2, 0));
-        // Y axis is default orientation
-        yAxisGroup.getTransforms().add(new Rotate(0, Rotate.Z_AXIS));
+        yAxis.getTransforms().add(new Translate(0, effectiveLength / 2, 0));
+        yAxisGroup.getTransforms().add(new Rotate(0, Rotate.Z_AXIS)); // Default
         yAxisGroup.getChildren().add(yAxis);
 
-        // Create blue Z axis group
+        // Blue Z Axis
         Group zAxisGroup = new Group();
-        Cylinder zAxis = new Cylinder(radius, length);
+        Cylinder zAxis = new Cylinder(radius, effectiveLength);
         zAxis.setMaterial(makeMaterial(Color.BLUE));
-        // Move cylinder so base is at origin
-        zAxis.getTransforms().add(new Translate(0, length / 2, 0));
-        // Rotate group to align cylinder along Z axis
+        zAxis.getTransforms().add(new Translate(0, effectiveLength / 2, 0));
         zAxisGroup.getTransforms().add(new Rotate(-90, Rotate.X_AXIS));
         zAxisGroup.getChildren().add(zAxis);
 
-        // Add axis groups to the main group
         this.getChildren().addAll(xAxisGroup, yAxisGroup, zAxisGroup);
     }
 
     /**
-     * Helper method to create a PhongMaterial with given color.
+     * Creates a PhongMaterial with given diffuse and specular color.
      */
     private PhongMaterial makeMaterial(Color color) {
         PhongMaterial material = new PhongMaterial();
@@ -68,4 +63,3 @@ public class Axes extends Group {
         return material;
     }
 }
-

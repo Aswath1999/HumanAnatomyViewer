@@ -171,84 +171,67 @@ public class WindowPresenter {
         if (file != null) {
             try {
                 TriangleMesh mesh = ObjParser.load(file.getAbsolutePath());
-
                 MeshView meshView = new MeshView(mesh);
 
-                // ✅ Use explicit material setup here
+                // === Material setup ===
                 PhongMaterial material = new PhongMaterial();
-
-                material.setSpecularColor(Color.WHITE); // <- this gives the shiny highlight
-
-
-                // ✅ Look for corresponding .png file
+                material.setSpecularColor(Color.WHITE); // Highlight
                 String objPath = file.getAbsolutePath();
                 String texturePath = objPath.substring(0, objPath.lastIndexOf('.')) + ".png";
                 File textureFile = new File(texturePath);
 
                 if (textureFile.exists()) {
-                    // If texture exists, load and apply
                     Image textureImage = new Image(textureFile.toURI().toString());
                     material.setDiffuseMap(textureImage);
                 } else {
-                    // If no texture, use green diffuse color
                     material.setDiffuseColor(Color.GREEN);
                 }
 
                 meshView.setMaterial(material);
 
-
-
-                // Optional: Reset transforms
-                meshView.setTranslateX(0);
-                meshView.setTranslateY(0);
-                meshView.setTranslateZ(0);
-
-                PointLight light = new PointLight(Color.WHITE);
-                light.setTranslateX(-200);  // move light in front or above
-                light.setTranslateY(-200);
-                light.setTranslateZ(-200);  // toward camera/model
-
-                AmbientLight ambient = new AmbientLight(Color.color(0.3, 0.3, 0.3));
-
-
-                //contentGroup.getChildren().clear();  // Remove axes or old model/**/
-                //contentGroup.getChildren().add(meshView);  // Add new model
-// Clear only the model, not the axes (assuming axes is still first child)
+                // === Clear previous model (keep axes) ===
+                contentGroup.getTransforms().clear(); // Reset rotation
                 if (contentGroup.getChildren().size() > 1) {
                     contentGroup.getChildren().remove(1, contentGroup.getChildren().size());
                 }
 
-// Add the model as a child, *alongside* the axes in contentGroup
-                contentGroup.getChildren().add(meshView);
-
-
-                meshView.getTransforms().addAll(
-                        new Rotate(-45, Rotate.Y_AXIS),       // Turn to face a cube corner
-                        new Rotate(-35.26, Rotate.X_AXIS)     // Tilt it upward
-                );
-
+                // === Align corner to origin ===
                 Bounds bounds = meshView.getBoundsInLocal();
+                double minX = bounds.getMinX();
+                double minY = bounds.getMinY();
+                double minZ = bounds.getMinZ();
 
-// Move the cube’s MIN CORNER to (0, 0, 0)
-                meshView.setTranslateX(-bounds.getMinX());
-                meshView.setTranslateY(-bounds.getMinY());
-                meshView.setTranslateZ(-bounds.getMinZ());
+                meshView.setTranslateX(-minX);
+                meshView.setTranslateY(-minY);
+                meshView.setTranslateZ(-minZ);
 
+                // === Wrap in group to isolate scale ===
+                Group modelGroup = new Group(meshView);
 
                 double maxDim = Math.max(bounds.getWidth(), Math.max(bounds.getHeight(), bounds.getDepth()));
-                double scaleFactor = 200 / maxDim;
+                double scaleX = 200 / bounds.getWidth();
+                double scaleY = 200 / bounds.getHeight();
+                double scaleZ = 200 / bounds.getDepth();
 
-                meshView.setScaleX(scaleFactor);
-                meshView.setScaleY(scaleFactor);
-                meshView.setScaleZ(scaleFactor);
+                modelGroup.setScaleX(scaleX);
+                modelGroup.setScaleY(scaleY);
+                modelGroup.setScaleZ(scaleZ);
 
 
+                // === Add to scene ===
+                contentGroup.getChildren().add(modelGroup);
 
+                // === (Optional) Rotate whole scene for better view ===
+                contentGroup.getTransforms().addAll(
+                        new Rotate(-45, Rotate.Y_AXIS),
+                        new Rotate(-35.26, Rotate.X_AXIS)
+                );
 
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
     }
+
 
 }
