@@ -1,17 +1,14 @@
 package assignment5.window;
 
+import assignment5.model.ObjIO;
+import assignment5.model.ObjParser;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point3D;
-import javafx.scene.Group;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.SceneAntialiasing;
-import javafx.scene.SubScene;
+import javafx.scene.*;
 import javafx.scene.control.Button;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.PointLight;
-import javafx.scene.AmbientLight;
 import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -191,60 +188,59 @@ public class WindowPresenter {
 
         if (file != null) {
             try {
-                // Load mesh from file
-                TriangleMesh mesh = ObjParser.load(file.getAbsolutePath());
+                // ✅ Load mesh using ObjIO
+                TriangleMesh mesh = ObjIO.loadMesh(file);
                 MeshView meshView = new MeshView(mesh);
 
-                // Set up material and texture
+                // Setup material
                 PhongMaterial material = new PhongMaterial();
                 material.setSpecularColor(Color.WHITE);
                 File textureFile = new File(file.getAbsolutePath().replace(".obj", ".png"));
                 if (textureFile.exists()) {
                     material.setDiffuseMap(new Image(textureFile.toURI().toString()));
                 } else {
-                    material.setDiffuseColor(Color.GREEN); // Fallback color
+                    material.setDiffuseColor(Color.GREEN);
                 }
                 meshView.setMaterial(material);
 
-                // Get bounds and compute center
-                Bounds bounds = meshView.getBoundsInLocal();
-                double centerX = (bounds.getMinX() + bounds.getMaxX()) / 2;
-                double centerY = (bounds.getMinY() + bounds.getMaxY()) / 2;
-                double centerZ = (bounds.getMinZ() + bounds.getMaxZ()) / 2;
+                // TEMP group for bounds calculation
+                Group tempGroup = new Group(meshView);
+                Scene tempScene = new Scene(tempGroup); // Forces layout / bounds update
+                Bounds bounds = meshView.getBoundsInParent();
 
-                // Move model center to origin
-                meshView.setTranslateX(-centerX);
-                meshView.setTranslateY(-centerY);
-                meshView.setTranslateZ(-centerZ);
+                // Align min corner to origin
+                meshView.setTranslateX(-bounds.getMinX());
+                meshView.setTranslateY(-bounds.getMinY());
+                meshView.setTranslateZ(-bounds.getMinZ());
 
-                // Scale model to fit into the 200×200×200 cube
+                // Scale to fit
                 double maxDim = Math.max(bounds.getWidth(), Math.max(bounds.getHeight(), bounds.getDepth()));
                 double scale = AXES_LENGTH / maxDim;
 
-                // Wrap in group for unified transformation
                 Group modelGroup = new Group(meshView);
                 modelGroup.setScaleX(scale);
                 modelGroup.setScaleY(scale);
                 modelGroup.setScaleZ(scale);
 
-                // Clear previous model (but keep axes)
+                // Clear previous model (preserve axes)
                 contentGroup.getTransforms().clear();
                 if (contentGroup.getChildren().size() > 1) {
                     contentGroup.getChildren().remove(1, contentGroup.getChildren().size());
                 }
 
-                // Add model to scene
                 contentGroup.getChildren().add(modelGroup);
 
-                // Initial view angle (optional)
+                // Optional view rotation
                 contentGroup.getTransforms().addAll(
                         new Rotate(-45, Rotate.Y_AXIS),
                         new Rotate(-35.26, Rotate.X_AXIS)
                 );
 
             } catch (Exception ex) {
-                ex.printStackTrace(); // Print error if something goes wrong
+                ex.printStackTrace();
             }
         }
     }
+
+
 }

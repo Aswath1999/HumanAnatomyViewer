@@ -15,4 +15,8 @@ module Advanced_Java_for_Bioinformatics {
     opens assignment5.window to javafx.fxml;
     exports assignment5;
 
+    opens assignment6.window to javafx.fxml;
+    exports assignment6;
+
+
 }
