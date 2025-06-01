@@ -45,7 +45,7 @@ public class WindowPresenter {
      */
     private void setup3DScene() {
         // Add coordinate axes (X: red, Y: green, Z: blue)
-        Axes axes = new Axes(AXES_LENGTH);
+        Axes axes = new Axes(20);
         contentGroup.getChildren().add(axes);
 
         // Add point light to simulate directional lighting
@@ -84,22 +84,22 @@ public class WindowPresenter {
     private void hookUpControls() {
         // Buttons: rotate, zoom, reset
         controller.getRotateLeftButton().setOnAction(e -> {
-            rotateY(10); // Rotate around Y axis to the left (CCW)
+            rotateY(-10); // Rotate around Y axis to the left (CCW)
             highlightButton(controller.getRotateLeftButton());
         });
 
         controller.getRotateRightButton().setOnAction(e -> {
-            rotateY(-10); // Rotate around Y axis to the right (CW)
+            rotateY(10); // Rotate around Y axis to the right (CW)
             highlightButton(controller.getRotateRightButton());
         });
 
         controller.getRotateUpButton().setOnAction(e -> {
-            rotateX(-10); // Tilt up (rotate around global X axis)
+            rotateX(10); // Tilt up (rotate around global X axis)
             highlightButton(controller.getRotateUpButton());
         });
 
         controller.getRotateDownButton().setOnAction(e -> {
-            rotateX(10); // Tilt down
+            rotateX(-10); // Tilt down
             highlightButton(controller.getRotateDownButton());
         });
 
@@ -190,21 +190,45 @@ public class WindowPresenter {
             try {
                 // ✅ Load mesh using ObjIO
                 TriangleMesh mesh = ObjIO.loadMesh(file);
-                MeshView meshView = new MeshView(mesh);
 
-                // Setup material
+
+                // Extract points array
+                float[] points = mesh.getPoints().toArray(null);
+
+                // Choose the corner vertex to align to (0,0,0)
+                int cornerVertexIndex = 7 - 1; // Vertex 7 in OBJ (indexing from 0), gets vertex of (0,0,0)
+                // gets the index from the vertex, as every vertex contains 3 (x,y,z) coordinates, thats why times 3
+                // so 6 * 3 = 18, which is the index of the vertex (0) of position x
+                float cornerX = points[cornerVertexIndex * 3];
+                float cornerY = points[cornerVertexIndex * 3 + 1];
+                float cornerZ = points[cornerVertexIndex * 3 + 2];
+
+
+                // Create material
                 PhongMaterial material = new PhongMaterial();
                 material.setSpecularColor(Color.WHITE);
-                File textureFile = new File(file.getAbsolutePath().replace(".obj", ".png"));
+
+                String texturePath = file.getAbsolutePath().replace(".obj", ".png");
+                File textureFile = new File(texturePath);
+
                 if (textureFile.exists()) {
-                    material.setDiffuseMap(new Image(textureFile.toURI().toString()));
+                    Image textureImage = new Image(textureFile.toURI().toString());
+                    material.setDiffuseMap(textureImage);
                 } else {
                     material.setDiffuseColor(Color.GREEN);
                 }
+
+                // Create MeshView
+                MeshView meshView = new MeshView(mesh);
                 meshView.setMaterial(material);
 
+                // Translate so that chosen corner is at origin
+                meshView.setTranslateX(-cornerX);
+                meshView.setTranslateY(-cornerY);
+                meshView.setTranslateZ(-cornerZ);
+
                 // TEMP group for bounds calculation
-                Group tempGroup = new Group(meshView);
+     /*           Group tempGroup = new Group(meshView);
                 Scene tempScene = new Scene(tempGroup); // Forces layout / bounds update
                 Bounds bounds = meshView.getBoundsInParent();
 
@@ -220,8 +244,9 @@ public class WindowPresenter {
                 Group modelGroup = new Group(meshView);
                 modelGroup.setScaleX(scale);
                 modelGroup.setScaleY(scale);
-                modelGroup.setScaleZ(scale);
+                modelGroup.setScaleZ(scale);*/
 
+                Group modelGroup = new Group(meshView);
                 // Clear previous model (preserve axes)
                 contentGroup.getTransforms().clear();
                 if (contentGroup.getChildren().size() > 1) {
