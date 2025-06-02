@@ -1,49 +1,55 @@
 package assignment4.window;
 
-import assignment03.model.ANode;
-import javafx.scene.control.TreeItem;
-import javafx.scene.control.TreeView;
+import assignment4.model.ANode;
+import javafx.geometry.Point2D;
 
-/**
- * Utility class for converting a tree of ANode objects
- * into a JavaFX TreeView structure using TreeItem nodes.
- */
+import java.util.Map;
+
 public class TreeViewSetup {
+    // Controller to manage the window
+    private final WindowController controller;
 
-    /**
-     * Sets up a TreeView to display a hierarchy of ANode objects.
-     *
-     * @param treeView The JavaFX TreeView to populate.
-     * @param rootNode The root of the ANode tree (from your model).
-     */
-    public static void setup(TreeView<ANode> treeView, ANode rootNode) {
-        // Convert ANode tree to TreeItem tree (used by TreeView)
-        TreeItem<ANode> rootItem = buildTree(rootNode);
-
-        // Expand root node so its children are visible by default
-        rootItem.setExpanded(true);
-
-        // Attach the built TreeItem hierarchy to the TreeView UI
-        treeView.setRoot(rootItem);
+    // Constructor to initialize the controller
+    public TreeViewSetup(WindowController controller) {
+        this.controller = controller;
     }
 
-    /**
-     * Recursively builds a TreeItem hierarchy from an ANode tree.
-     *
-     * @param node The ANode model node to convert.
-     * @return A TreeItem that wraps the node and includes its children.
-     */
-    private static TreeItem<ANode> buildTree(ANode node) {
-        // Create a TreeItem that wraps the current ANode
-        TreeItem<ANode> item = new TreeItem<>(node);
+    // Method to render the tree view
+    public void render(Map<ANode, Point2D> layout) {
+        var edgeGroup = controller.getEdgeGroup();
+        var nodeGroup = controller.getNodeGroup();
+        var labelGroup = controller.getLabelGroup();
 
-        // Recursively convert and attach all children
-        for (ANode child : node.children()) {
-            TreeItem<ANode> childItem = buildTree(child); // Recursive step
-            item.getChildren().add(childItem);
+        edgeGroup.getChildren().clear();
+        nodeGroup.getChildren().clear();
+        labelGroup.getChildren().clear();
+
+        // Count nodes, edges, and leaves
+        int nodeCount = layout.size();
+        int edgeCount = countEdges(layout);
+        int leafCount = countLeaves(layout);
+        // Update the HBox with the counts
+        controller.getLabelHBox().setText("Nodes: " + nodeCount + ", Edges: " + edgeCount + ", Leaves: " + leafCount);
+    }
+
+    // Method to count edges based on the layout
+    private int countEdges(Map<ANode, Point2D> layout) {
+        int edgeCount = 0;
+        for (ANode node : layout.keySet()) {
+            edgeCount += node.children().size(); // Each child represents an edge
         }
-
-        // Return the complete TreeItem (with children attached)
-        return item;
+        return edgeCount;
+    }
+    // Method to count leaves based on the layout
+    private int countLeaves(Map<ANode, Point2D> layout) {
+        int leafCount = 0;
+        for (ANode node : layout.keySet()) {
+            if (node.children().isEmpty()) {
+                leafCount++; // Count if the node has no children
+            }
+        }
+        return leafCount;
     }
 }
+
+

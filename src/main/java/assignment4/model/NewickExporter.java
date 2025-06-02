@@ -17,9 +17,9 @@ public class NewickExporter {
                 },
                 v -> {  // postVisitor
                     if (v.children().isEmpty()) {
-                        sb.append(sanitize(v.label()));
+                        sb.append(sanitize(v.name()));
                     } else {
-                        sb.append(")").append(sanitize(v.label()));
+                        sb.append(")").append(sanitize(v.name()));
                     }
                 }
         );
@@ -49,3 +49,4 @@ public class NewickExporter {
         postVisitor.accept(v);
     }
 }
+

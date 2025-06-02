@@ -1,37 +1,32 @@
 package assignment4.model;
 
-// Importing the Collection interface from the Java standard library
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-/**
- * ANode is a record representing a node in a conceptual or hierarchical structure.
- *
- * Fields:
- * - conceptId: A unique identifier for the concept this node represents.
- * - representationId: An ID indicating how this node might be visualized or represented.
- * - name: A human-readable name for the node.
- * - children: A collection of child ANode objects, representing the tree or graph structure.
- * - fileIds: A collection of file identifiers that may be associated with this node.
- */
-public record ANode(
-        String conceptId,
-        String representationId,
-        String name,
-        Collection<ANode> children,
-        Collection<String> fileIds
-) {
+import java.util.Objects;
+
+// class to create ANode objects
+public record ANode(String conceptId, String representationId, String name, Collection<ANode> children, Collection<String> fileIds) {
     @Override
     public String toString() {
         return name + " (" + conceptId + ")";
     }
 
-    public String label() {
-        return name;
+    @Override
+    // method to check if two ANode objects are equal
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof ANode other)) return false;
+        return Objects.equals(conceptId, other.conceptId) && Objects.equals(name, other.name);
     }
 
-    // Optional safe helper
-    public List<ANode> childList() {
-        return new ArrayList<>(children);  // returns a copy
+    @Override
+    // method to generate a hash code for ANode objects
+    public int hashCode() {
+        return Objects.hash(conceptId, name);
+    }
+
+    // method to get the concept ID of the ANode
+    public Collection<String> getFileIds() {
+        return this.fileIds;
     }
 }
+

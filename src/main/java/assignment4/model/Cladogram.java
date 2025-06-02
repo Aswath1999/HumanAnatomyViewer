@@ -1,20 +1,11 @@
 package assignment4.model;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import javafx.geometry.Point2D;
-import java.util.function.Consumer;
 
 public class Cladogram {
 
-    /**
-     * Layout algorithm that assigns equal depth (X-coordinate) to all leaves.
-     * Internal nodes are positioned based on their children's coordinates.
-     *
-     * @param root the root of the tree
-     * @return a map from each node to its (X, Y) coordinate
-     */
+    // Layout methods for the cladogram tree
     public static Map<ANode, Point2D> layoutEqualLeafDepth(ANode root) {
         Map<ANode, Point2D> layout = new HashMap<>();
         // Mutable counter for number of leaves
@@ -54,13 +45,6 @@ public class Cladogram {
         }
     }
 
-    /**
-     * Layout algorithm that enforces a uniform edge length between parent and child nodes.
-     * Horizontal position (X) increases with depth, and vertical position (Y) is same as equalLeafDepth.
-     *
-     * @param root the root of the tree
-     * @return a map from each node to its (X, Y) coordinate
-     */
     // Method to layout the cladogram with uniform edge lengths
     public static Map<ANode, Point2D> layoutUniformEdgeLength(ANode root) {
         Map<ANode, Point2D> layout = new HashMap<>();
@@ -86,35 +70,6 @@ public class Cladogram {
         for (ANode child : node.children()) {
             layoutUniformEdgeXRecursive(child, layout, x + 1); // Child x = parent x + 1
         }
-    }
-    /**
-     * Recursive helper function to set X-coordinates using pre-order traversal.
-     *
-     * @param node current node
-     * @param x depth level (starts at 0 and increments for children)
-     * @param coordinates map of node positions
-     */
-    private static void preOrder(ANode node, int x, Map<ANode, Point2D> coordinates) {
-        Point2D old = coordinates.get(node);
-        // Update point with correct X (depth), retain previous Y
-        coordinates.put(node, new Point2D(x, old.getY()));
-        for (ANode child : node.children()) {
-            preOrder(child, x + 1, coordinates); // Recurse into children, increasing depth
-        }
-    }
-
-    /**
-     * Recursive post-order traversal (children first, then parent)
-     * Applies a given function (visitor) to each node after its children are visited.
-     *
-     * @param node the current node
-     * @param visitor a function to apply to each node
-     */
-    private static void postOrder(ANode node, Consumer<ANode> visitor) {
-        for (ANode child : node.children()) {
-            postOrder(child, visitor); // Recurse into children
-        }
-        visitor.accept(node); // Apply function after all children
     }
 
     // method to compute the maximum depth of the tree

@@ -296,8 +296,10 @@ public class WindowPresenter {
 
     private void clearModels() {
         innerGroup.getChildren().clear();               // Clear models
+
         innerGroup.getTransforms().clear();             // Remove any centering transforms
         contentGroup.getTransforms().clear();           // Reset rotation
+        // contentGroup.getChildren().clear();
         camera.setTranslateZ(-900);                     // Reset zoom
     }
 
