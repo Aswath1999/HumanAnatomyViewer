@@ -1,93 +1,109 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.input.KeyCodeCombination?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="assignment5.window.WindowController">
-
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="assignment5.window.WindowController">
     <children>
-
-        <!-- Top Area: BorderPane for Menu -->
-        <BorderPane AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <BorderPane fx:id="mainBorderPane" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
             <top>
-                <MenuBar>
-                    <menus>
-                        <Menu text="File">
+                <VBox prefHeight="39.0" prefWidth="600.0" BorderPane.alignment="CENTER">
+                    <children>
+                        <MenuBar BorderPane.alignment="CENTER">
+                            <menus>
+                                <Menu mnemonicParsing="false" text="File">
+                                    <items>
+                                        <MenuItem fx:id="menuOpen" mnemonicParsing="false" text="Open..." />
+                                        <MenuItem fx:id="menuClose" mnemonicParsing="false" text="Close">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="X" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                    </items>
+                                </Menu>
+                                <Menu mnemonicParsing="false" text="View">
+                                    <items>
+                                        <MenuItem fx:id="menuReset" mnemonicParsing="false" text="Reset">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="Z" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                        <MenuItem fx:id="menuZoomIn" mnemonicParsing="false" text="Zoom in">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="I" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                        <MenuItem fx:id="menuZoomOut" mnemonicParsing="false" text="Zoom Out">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="O" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                        <MenuItem fx:id="menuRotateLeft" mnemonicParsing="false" text="Rotate Left">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="LEFT" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                        <MenuItem fx:id="menuRotateRight" mnemonicParsing="false" text="Rotate Right">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="RIGHT" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                        <MenuItem fx:id="menuRotateUp" mnemonicParsing="false" text="Rotate Up">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="UP" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                        <MenuItem fx:id="menuRotateDown" mnemonicParsing="false" text="Rotate Down">
+                                            <accelerator>
+                                                <KeyCodeCombination alt="UP" code="DOWN" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                                            </accelerator>
+                                        </MenuItem>
+                                    </items>
+                                </Menu>
+                                <Menu mnemonicParsing="false" text="Help">
+                                    <items>
+                                        <MenuItem mnemonicParsing="false" text="About" />
+                                    </items>
+                                </Menu>
+                            </menus>
+                        </MenuBar>
+                        <ToolBar prefHeight="97.0" prefWidth="569.0">
                             <items>
-                                <MenuItem fx:id="menuOpen" text="Open..." />
-                                <MenuItem fx:id="menuClose" text="Close" />
+                                <Button fx:id="resetButton" mnemonicParsing="false" text="Reset" />
+                                <Separator orientation="VERTICAL" prefHeight="0.0" prefWidth="5.0" />
+                                <Button fx:id="zoomInButton" mnemonicParsing="false" text="Zoom In" />
+                                <Button fx:id="zoomOutButton" mnemonicParsing="false" text="Zoom Out" />
+                                <Separator orientation="VERTICAL" prefHeight="0.0" />
+                                <Button fx:id="rotateLeftButton" mnemonicParsing="false" text="Rotate Left" />
+                                <Button fx:id="rotateRightButton" mnemonicParsing="false" text="Rotate Right" />
+                                <Button fx:id="rotateUpButton" mnemonicParsing="false" text="Rotate Up" />
+                                <Button fx:id="rotateDownButton" mnemonicParsing="false" text="Rotate Down" />
                             </items>
-                        </Menu>
-                        <Menu text="View">
-                            <items>
-                                <MenuItem fx:id="menuReset" text="Reset" />
-                                <MenuItem fx:id="menuZoomIn" text="Zoom In" />
-                                <MenuItem fx:id="menuZoomOut" text="Zoom Out" />
-                                <MenuItem fx:id="menuRotateLeft" text="Rotate Left" />
-                                <MenuItem fx:id="menuRotateRight" text="Rotate Right" />
-                                <MenuItem fx:id="menuRotateUp" text="Rotate Up" />
-                                <MenuItem fx:id="menuRotateDown" text="Rotate Down" />
-                            </items>
-                        </Menu>
-                        <Menu text="Help" />
-                    </menus>
-                </MenuBar>
+                        </ToolBar>
+                    </children>
+                </VBox>
             </top>
+            <bottom>
+                <ToolBar prefHeight="40.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+                    <items>
+                        <Pane prefHeight="0.0" prefWidth="520.0" />
+                        <Button fx:id="closeButton" text="Close" />
+                    </items>
+                </ToolBar>
+            </bottom>
+            <center>
+                <StackPane fx:id="centerPane" minHeight="0.0" minWidth="0.0" prefHeight="400.0" prefWidth="600.0" BorderPane.alignment="CENTER" />
+            </center>
         </BorderPane>
-
-        <!-- Toolbar under menu -->
-<!--
-        <HBox spacing="10" padding="10"
-              AnchorPane.topAnchor="30.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
-            <Button text="Reset" fx:id="btnReset"/>
-            <Button text="Zoom In" fx:id="btnZoomIn"/>
-            <Button text="Zoom Out" fx:id="btnZoomOut"/>
-            <Button text="Rotate Left" fx:id="btnRotateLeft"/>
-            <Button text="Rotate Right" fx:id="btnRotateRight"/>
-            <Button text="Rotate Up" fx:id="btnRotateUp"/>
-            <Button text="Rotate Down" fx:id="btnRotateDown"/>
-        </HBox>
--->
-
-        <!-- Options: RadioButtons with padding -->
-        <HBox alignment="CENTER_LEFT"
-              spacing="10.0"
-              AnchorPane.leftAnchor="10.0"
-              AnchorPane.topAnchor="30.0">
-            <padding>
-                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
-            </padding>
-
-            <Button fx:id="resetButton" text="Reset" />
-            <Button fx:id="zoomInButton" text="Zoom In" />
-            <Button fx:id="zoomOutButton" text="Zoom Out" />
-            <Button fx:id="rotateLeftButton" text="Rotate Left" />
-            <Button fx:id="rotateRightButton" text="Rotate Right" />
-            <Button fx:id="rotateUpButton" text="Rotate Up" />
-            <Button fx:id="rotateDownButton" text="Rotate Down" />
-        </HBox>
-
-
-        <!-- Center Pane for 3D scene -->
-        <Pane fx:id="centerPane" layoutY="75.0" prefHeight="490.0" prefWidth="800.0" style="-fx-background-color: skyblue;" AnchorPane.bottomAnchor="35.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="75.0" />
-
-
-        <HBox alignment="CENTER_LEFT" spacing="10.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="70.0">
-            <padding>
-                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-            </padding>
-
-        </HBox>
-         <Button fx:id="closeButton" layoutX="699.0" layoutY="570.0"  prefHeight="26.0" prefWidth="81.0" text="Close" />
-
-
-
     </children>
 </AnchorPane>

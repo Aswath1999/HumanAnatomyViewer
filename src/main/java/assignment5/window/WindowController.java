@@ -1,16 +1,18 @@
 package assignment5.window;
 
-import javafx.event.ActionEvent;
+import assignment5.window.WindowPresenter;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.MenuItem;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.BorderPane;
 
 public class WindowController {
 
     private WindowPresenter presenter;
 
     @FXML private Pane centerPane;
+    @FXML private BorderPane mainBorderPane;
 
     @FXML private Button closeButton;
     @FXML private Button resetButton;
@@ -31,6 +33,7 @@ public class WindowController {
     @FXML private MenuItem menuZoomIn;
     @FXML private MenuItem menuZoomOut;
 
+
 /*    // Optional controller actions (used by FXML only if declared there)
     @FXML void handleClose(ActionEvent event) { }
     @FXML void handleFit(ActionEvent event) { }
@@ -46,6 +49,8 @@ public class WindowController {
     public Pane getCenterPane() {
         return centerPane;
     }
+
+    public Pane getMainBorderPane() {return mainBorderPane;}
 
     public Button getResetButton() {
         return resetButton;
@@ -113,7 +118,6 @@ public class WindowController {
     public MenuItem getMenuOpen() {
         return menuOpen;
     }
-
 
 
 }
