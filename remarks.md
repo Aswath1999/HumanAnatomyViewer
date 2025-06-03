@@ -354,7 +354,6 @@ Use this feedback to polish and correct things early. Let me know if you'd like 
 
 **General Comments:**
 
-* `WindowView` should **not** contain `getRoot()` or `WindowController`.
 * `ANode` should **not** implement `equals()` or `hashCode()`.
 
 ---
