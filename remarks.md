@@ -348,6 +348,7 @@ I'm pointing out these issues for learning purposes — only minor points were d
 Use this feedback to polish and correct things early. Let me know if you'd like support reviewing your controller, FXML, or interaction logic again.
 
 
+---
 
 ### **Assignment 04**
 
