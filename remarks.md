@@ -350,7 +350,7 @@ Use this feedback to polish and correct things early. Let me know if you'd like 
 
 ---
 
-### **Assignment 04**
+## **Assignment 04**
 
 **General Comments:**
 
@@ -392,7 +392,7 @@ Nice you implemented Newick support.
 
 ---
 
-### **Assignment 05**
+## **Assignment 05**
 
 **General Comments:**
 
