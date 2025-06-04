@@ -1,15 +1,20 @@
 package assignment6.window;
 
-import assignment6.window.WindowController;
-import javafx.scene.Parent;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.layout.Region;
 
-public class WindowView extends Parent {
+public class WindowView extends Region {
 
     public WindowView() throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/assignment6/window/Window.fxml"));
-        Parent view = loader.load();
+
+        Region view = (Region) loader.load();  // cast from Parent to Region
         getChildren().add(view);
+
+        view.prefWidthProperty().bind(widthProperty());
+        view.prefHeightProperty().bind(heightProperty());
+
+        setPrefSize(600, 400);
 
         new WindowPresenter(loader.getController());
     }

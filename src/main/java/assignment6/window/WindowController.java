@@ -1,6 +1,6 @@
 package assignment6.window;
 
-import javafx.event.ActionEvent;
+import assignment6.window.WindowPresenter;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.MenuItem;
@@ -20,14 +20,7 @@ public class WindowController {
     @FXML private Button rotateUpButton;
     @FXML private Button zoomInButton;
     @FXML private Button zoomOutButton;
-
-    public Button getClearButton() {
-        return clearButton;
-    }
-
-    @FXML
-    private Button clearButton;
-
+    @FXML private Button clearButton;
 
     @FXML private MenuItem menuClose;
     @FXML private MenuItem menuOpen;
@@ -38,6 +31,7 @@ public class WindowController {
     @FXML private MenuItem menuRotateUp;
     @FXML private MenuItem menuZoomIn;
     @FXML private MenuItem menuZoomOut;
+    @FXML private MenuItem menuClear;
 
 /*    // Optional controller actions (used by FXML only if declared there)
     @FXML void handleClose(ActionEvent event) { }
@@ -122,8 +116,8 @@ public class WindowController {
         return menuOpen;
     }
 
+    public Button getClearButton() { return clearButton; }
 
-
-
+    public MenuItem getMenuClear() { return menuClear; }
 
 }
