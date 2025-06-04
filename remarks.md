@@ -347,3 +347,97 @@ I'm pointing out these issues for learning purposes — only minor points were d
 
 Use this feedback to polish and correct things early. Let me know if you'd like support reviewing your controller, FXML, or interaction logic again.
 
+
+---
+
+## **Assignment 04**
+
+**General Comments:**
+
+* `ANode` should **not** implement `equals()` or `hashCode()`.
+
+---
+
+#### **Task 1**
+
+* **Design & Functionality:**
+  Everything is there as expected.
+  **Points: 2/2**
+
+---
+
+#### **Task 2**
+
+* **Functionality:**
+  It works fine.
+  **Points: 4/4**
+
+---
+
+#### **Task 3**
+
+* **Design:**
+  It’s fine.
+* **Functionality:**
+  It’s fine.
+  **Points: 4/4**
+
+---
+
+**Total: 10/10**
+
+**Note:**
+Nice you implemented Newick support.
+
+---
+
+## **Assignment 05**
+
+**General Comments:**
+
+* `ObjParser` should be in the **model** package. While it uses JavaFX classes, it only handles parsing and not UI logic.
+* `Axes` should be in the **window** package, since it is a JavaFX `Node`.
+* The shortcut key doesn’t match the intended action.
+* There's a zoom-in limit — after a certain point, the object disappears.
+* The implementation still needs various improvements.
+
+---
+
+#### **Task 1**
+
+* **Design & Functionality:**
+  The implementation works as required.
+  **Points: 4/4**
+
+---
+
+#### **Task 2**
+
+* **Functionality:**
+  It works as expected.
+  **Points: 3/3**
+
+---
+
+#### **Task 3**
+
+* **Functionality:**
+  It’s fine.
+  **Points: 1/1**
+
+---
+
+#### **Task 4**
+
+* **Functionality:**
+  It works, but there are issues:
+
+  * When loading a new `.obj`, the previous object is **not cleared**.
+  * Sometimes objects overlap due to loading from the same position.
+  * The scene should be **reset**, and the new object should be **centered**.
+
+    **Points: 2/2**
+
+---
+
+**Total: 10/10**
