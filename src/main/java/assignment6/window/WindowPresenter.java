@@ -36,6 +36,8 @@ public class WindowPresenter {
     private Axes axes; // Axes object for 3D scene
 
 
+
+
     public WindowPresenter(WindowController controller) {
         this.controller = controller;
         setup3DScene();      // Build axes, lights, camera
