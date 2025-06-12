@@ -18,5 +18,9 @@ module Advanced_Java_for_Bioinformatics {
     opens assignment6.window to javafx.fxml;
     exports assignment6;
 
+    opens HumanAnatomyViewer.window to javafx.fxml;
+    exports HumanAnatomyViewer;
+    opens HumanAnatomyViewer.model to javafx.fxml;
+
 
 }

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ColorPicker?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="689" prefWidth="800" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="HumanAnatomyViewer.window.WindowController">
+
+    <children>
+        <BorderPane prefHeight="689" prefWidth="800"
+                    AnchorPane.topAnchor="0.0"
+                    AnchorPane.bottomAnchor="0.0"
+                    AnchorPane.leftAnchor="0.0"
+                    AnchorPane.rightAnchor="0.0">
+            <top>
+                <MenuBar BorderPane.alignment="CENTER">
+                    <menus>
+                        <Menu text="File">
+                            <items>
+                                <MenuItem text="Close" />
+                            </items>
+                        </Menu>
+                        <Menu text="Edit">
+                            <items>
+                                <MenuItem text="Delete" />
+                            </items>
+                        </Menu>
+                        <Menu text="Help">
+                            <items>
+                                <MenuItem text="About" />
+                            </items>
+                        </Menu>
+                    </menus>
+                </MenuBar>
+            </top>
+            <center>
+                <SplitPane dividerPositions="0.39786967418546365">
+                    <!-- LEFT PANEL -->
+                    <AnchorPane>
+                        <children>
+                            <VBox spacing="5.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                <!-- Top Toolbars -->
+                                <ToolBar>
+                                    <Button fx:id="expandButton" onAction="#handleExpand" text="Expand" />
+                                    <Button fx:id="collapseButton" onAction="#handleCollapse" text="Collapse" />
+                                    <Button fx:id="findButton" onAction="#handleFind" text="Find" />
+                                </ToolBar>
+                                <ToolBar>
+                                    <TextField fx:id="searchTextField" promptText="Search..." />
+                                    <Button fx:id="firstButton" onAction="#handleFirst" text="First" />
+                                    <Button fx:id="nextButton" onAction="#handleNext" text="Next" />
+                                    <Button fx:id="allButton" onAction="#handleAll" text="All" />
+                                </ToolBar>
+                                <ToolBar>
+                                    <Button fx:id="isAButton" onAction="#handleIsA" text="Is-A" />
+                                    <Button fx:id="partOfButton" onAction="#handlePartOf" text="Part-Of" />
+                                </ToolBar>
+
+                                <!-- TreeView - expandable -->
+                                <TreeView fx:id="treeView" VBox.vgrow="ALWAYS" />
+
+                                <!-- Bottom Toolbar -->
+                                <ToolBar>
+                                    <Button fx:id="selectButton" onAction="#handleSelect" text="Select" />
+                                    <Button fx:id="deselectButton" onAction="#handleDeselect" text="Deselect" />
+                                </ToolBar>
+                            </VBox>
+                        </children>
+                    </AnchorPane>
+
+                    <!-- RIGHT PANEL -->
+                    <AnchorPane>
+                        <children>
+                            <VBox spacing="5.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                <ToolBar>
+                                    <Button fx:id="showButton" onAction="#handleShow" text="Show" />
+                                    <Button fx:id="hideButton" onAction="#handleHide" text="Hide" />
+                                    <ColorPicker fx:id="colorPicker" />
+                                </ToolBar>
+
+                                <!-- Visualization Pane - expandable -->
+                                <Pane fx:id="visualizationPane" prefHeight="618.0" prefWidth="514.0" VBox.vgrow="ALWAYS" />
+                            </VBox>
+                        </children>
+                    </AnchorPane>
+                </SplitPane>
+            </center>
+        </BorderPane>
+    </children>
+</AnchorPane>
