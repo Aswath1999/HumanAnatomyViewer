@@ -409,6 +409,8 @@ public class WindowPresenter {
 
 
 
+
+
     private void applyColorToGroup(Group group, Color color) {
         group.getChildren().forEach(node -> {
             if (node instanceof javafx.scene.shape.Shape3D shape) {
