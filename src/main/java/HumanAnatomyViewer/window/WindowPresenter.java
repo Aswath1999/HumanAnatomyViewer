@@ -34,9 +34,9 @@ public class WindowPresenter {
     private TreeItem<ANode> partOfRootItem;
     private TreeItem<ANode> isARootItem;
 
-    private final Group innerGroup = new Group();   // actual models
-    private final Group contentGroup = new Group(); // centered and rotated container
-    private final Group root3D = new Group();       // top-level scene root
+    private final Group innerGroup = new Group();
+    private final Group contentGroup = new Group();
+    private final Group root3D = new Group();
 
     private final PerspectiveCamera camera = new PerspectiveCamera(true);
     private final Map<String, Group> loadedModels = new HashMap<>();
@@ -47,6 +47,9 @@ public class WindowPresenter {
     private List<TreeItem<ANode>> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
 
+    private final Set<String> selectedFileIds = new HashSet<>();
+    private boolean inSelectionUpdate = false;
+
     public WindowPresenter(Stage stage, WindowController controller, Model model) {
         this.stage = stage;
         this.controller = controller;
@@ -56,8 +59,6 @@ public class WindowPresenter {
         setupTreeSelection();
         setupButtonHandlers();
     }
-
-
 
     private void initializeTrees() {
         partOfRootItem = buildTreeItem(model.getPartOfRoot());
@@ -74,30 +75,34 @@ public class WindowPresenter {
         for (ANode child : node.children()) {
             item.getChildren().add(buildTreeItem(child));
         }
+        item.setExpanded(false);
         return item;
     }
 
     private void setupTreeSelection() {
         controller.getTreeView().getSelectionModel().getSelectedItems().addListener(
                 (ListChangeListener<TreeItem<ANode>>) change -> {
-                    // optional: log or update UI based on selection
+                    if (inSelectionUpdate) return;
+                    inSelectionUpdate = true;
+
+                    selectedFileIds.clear();
+                    for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
+                        if (item.getValue() != null) {
+                            selectedFileIds.addAll(item.getValue().fileIds());
+                        }
+                    }
+
                     applyDrawModeBasedOnSelection();
+                    inSelectionUpdate = false;
                 }
         );
     }
 
     private void applyDrawModeBasedOnSelection() {
-        Set<String> selectedFileIds = new HashSet<>();
-        for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
-            ANode node = item.getValue();
-            if (node != null) selectedFileIds.addAll(node.fileIds());
-        }
-
         for (Map.Entry<String, Group> entry : loadedModels.entrySet()) {
             String fileId = entry.getKey();
             Group modelGroup = entry.getValue();
             boolean isSelected = selectedFileIds.contains(fileId);
-
             setDrawModeRecursive(modelGroup, isSelected ? DrawMode.FILL : DrawMode.LINE);
         }
     }
@@ -111,7 +116,6 @@ public class WindowPresenter {
             }
         }
     }
-
 
     private void setupButtonHandlers() {
         controller.getIsAButton().setOnAction(e -> switchToIsATree());
@@ -128,8 +132,6 @@ public class WindowPresenter {
         controller.getAllButton().setOnAction(e -> handleAll());
         controller.getSearchTextField().setOnAction(e -> handleFind());
         controller.getColorPicker().setOnAction(e -> handleColorChange());
-
-
     }
 
     private void switchToIsATree() {
@@ -187,26 +189,21 @@ public class WindowPresenter {
     private void handleSelectNone() {
         controller.getTreeView().getSelectionModel().clearSelection();
     }
+
     private void handleShow() {
         var selectedItems = controller.getTreeView().getSelectionModel().getSelectedItems();
 
-        // Step 1: Clear inner group & transforms
         innerGroup.getChildren().clear();
         innerGroup.getTransforms().clear();
         contentGroup.getTransforms().clear();
-        totalTransform = new Rotate(); // Reset accumulated rotation
+        totalTransform = new Rotate();
 
-        boolean anyNewModelLoaded = false;
-
-        // Step 2: Load and add selected models
         for (TreeItem<ANode> item : selectedItems) {
             ANode node = item.getValue();
             if (node == null) continue;
 
             for (String fileId : node.fileIds()) {
                 Group modelGroup = loadedModels.get(fileId);
-
-                // If not loaded, load from file
                 if (modelGroup == null) {
                     try {
                         String path = "/HumanAnatomy/BodyParts/" + fileId + ".obj";
@@ -215,10 +212,8 @@ public class WindowPresenter {
 
                         File file = new File(url.toURI());
                         modelGroup = ObjIO.openObjFile(file);
-
                         if (modelGroup != null) {
                             loadedModels.put(fileId, modelGroup);
-                            anyNewModelLoaded = true;
                         }
                     } catch (Exception e) {
                         System.out.println("Failed to load model: " + fileId);
@@ -232,20 +227,18 @@ public class WindowPresenter {
                     innerGroup.getChildren().add(modelGroup);
                 }
             }
-            applyDrawModeBasedOnSelection();
-
         }
 
-        // Step 3: Allow layout pass, then recenter and adjust camera
+        applyDrawModeBasedOnSelection();
+
         Platform.runLater(() -> {
             innerGroup.applyCss();
             innerGroup.layout();
-
-            centerContentGroup();    // Properly reposition center to origin
-            autoAdjustCamera();      // Zoom camera out based on new bounding box
+            centerContentGroup();
+            autoAdjustCamera();
         });
 
-        setup3DScene(); // Ensure it's displayed
+        setup3DScene();
     }
 
     private void setupClickHandler(Group modelGroup, String fileId) {
@@ -257,7 +250,7 @@ public class WindowPresenter {
             if (node instanceof javafx.scene.shape.Shape3D shape) {
                 shape.setPickOnBounds(true);
                 shape.setOnMouseClicked(event -> {
-                    handleModelClick(fileId); // Just fill on click
+                    handleModelClick(fileId);
                     event.consume();
                 });
             } else if (node instanceof Group subGroup) {
@@ -267,28 +260,37 @@ public class WindowPresenter {
     }
 
     private void handleModelClick(String fileId) {
-        TreeView<ANode> treeView = controller.getTreeView();
-        MultipleSelectionModel<TreeItem<ANode>> selectionModel = treeView.getSelectionModel();
-        TreeItem<ANode> item = findTreeItemByFileId(treeView.getRoot(), fileId);
+        selectedFileIds.clear();
+        selectedFileIds.add(fileId);
+        syncSelectionFromFileIds();
+        applyDrawModeBasedOnSelection();
+    }
 
-        if (item != null) {
-            expandTo(item); // Expand parent branches
-            selectionModel.clearAndSelect(treeView.getRow(item)); // Highlight without collapsing everything
-            treeView.scrollTo(treeView.getRow(item)); // Scroll to it
+    private void syncSelectionFromFileIds() {
+        TreeView<ANode> tree = controller.getTreeView();
+        MultipleSelectionModel<TreeItem<ANode>> model = tree.getSelectionModel();
+
+        inSelectionUpdate = true;
+        model.clearSelection();
+        selectMatchingItems(tree.getRoot(), model);
+        inSelectionUpdate = false;
+    }
+
+    private void selectMatchingItems(TreeItem<ANode> item, MultipleSelectionModel<TreeItem<ANode>> model) {
+        if (item.getValue() != null && item.getValue().fileIds().stream().anyMatch(selectedFileIds::contains)) {
+            expandPathTo(item);
+            model.select(item);
+            Platform.runLater(() -> {
+                int row = controller.getTreeView().getRow(item);
+                if (row >= 0) controller.getTreeView().scrollTo(row);
+            });
         }
-
-        // Update draw modes
-        for (Map.Entry<String, Group> entry : loadedModels.entrySet()) {
-            String id = entry.getKey();
-            Group group = entry.getValue();
-            DrawMode mode = id.equals(fileId) ? DrawMode.FILL : DrawMode.LINE;
-            setDrawModeRecursive(group, mode);
+        for (TreeItem<ANode> child : item.getChildren()) {
+            selectMatchingItems(child, model);
         }
     }
 
-
-
-    private void expandTo(TreeItem<ANode> item) {
+    private void expandPathTo(TreeItem<ANode> item) {
         TreeItem<ANode> parent = item.getParent();
         while (parent != null) {
             parent.setExpanded(true);
@@ -296,22 +298,6 @@ public class WindowPresenter {
         }
     }
 
-
-
-    /*private void setupClickHandler(Group modelGroup, String fileId) {
-        modelGroup.setOnMouseClicked(event -> {
-            System.out.println("Clicked on model: " + fileId);
-            TreeItem<ANode> matchingItem = findTreeItemByFileId(controller.getTreeView().getRoot(), fileId);
-            if (matchingItem != null) {
-                controller.getTreeView().getSelectionModel().clearSelection();
-                controller.getTreeView().getSelectionModel().select(matchingItem);
-                controller.getTreeView().scrollTo(controller.getTreeView().getRow(matchingItem));
-            }
-
-            applyDrawModeBasedOnSelection(); // Update visual state
-            event.consume(); // Prevent bubbling
-        });
-    }*/
     private TreeItem<ANode> findTreeItemByFileId(TreeItem<ANode> root, String fileId) {
         if (root.getValue() != null && root.getValue().fileIds().contains(fileId)) {
             return root;
@@ -372,7 +358,7 @@ public class WindowPresenter {
 
     }
 
-    private void handleColorChange() {
+    /*private void handleColorChange() {
         Color newColor = controller.getColorPicker().getValue();
         var selectedItems = controller.getTreeView().getSelectionModel().getSelectedItems();
 
@@ -387,7 +373,42 @@ public class WindowPresenter {
                 }
             }
         }
+    }*/
+
+    private void handleColorChange() {
+        Color newColor = controller.getColorPicker().getValue();
+
+        for (String fileId : selectedFileIds) {
+            Group modelGroup = loadedModels.get(fileId);
+            if (modelGroup != null) {
+                applyColorToFilledShapes(modelGroup, newColor);
+            }
+        }
     }
+
+
+    private void applyColorToFilledShapes(Group group, Color color) {
+        for (javafx.scene.Node node : group.getChildren()) {
+            if (node instanceof javafx.scene.shape.Shape3D shape) {
+                if (shape.getDrawMode() == DrawMode.FILL) {
+                    var material = shape.getMaterial();
+                    if (material instanceof javafx.scene.paint.PhongMaterial phong) {
+                        phong.setDiffuseColor(color);
+                    } else {
+                        javafx.scene.paint.PhongMaterial newMaterial = new javafx.scene.paint.PhongMaterial(color);
+                        shape.setMaterial(newMaterial);
+                    }
+                }
+            } else if (node instanceof Group subGroup) {
+                applyColorToFilledShapes(subGroup, color);
+            }
+        }
+    }
+
+
+
+
+
     private void applyColorToGroup(Group group, Color color) {
         group.getChildren().forEach(node -> {
             if (node instanceof javafx.scene.shape.Shape3D shape) {
