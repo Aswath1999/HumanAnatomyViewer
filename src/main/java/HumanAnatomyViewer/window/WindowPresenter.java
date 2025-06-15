@@ -16,6 +16,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.PointLight;
 import javafx.scene.AmbientLight;
+import javafx.scene.shape.DrawMode;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Transform;
 import javafx.scene.transform.Translate;
@@ -56,6 +57,8 @@ public class WindowPresenter {
         setupButtonHandlers();
     }
 
+
+
     private void initializeTrees() {
         partOfRootItem = buildTreeItem(model.getPartOfRoot());
         isARootItem = buildTreeItem(model.getIsARoot());
@@ -78,9 +81,37 @@ public class WindowPresenter {
         controller.getTreeView().getSelectionModel().getSelectedItems().addListener(
                 (ListChangeListener<TreeItem<ANode>>) change -> {
                     // optional: log or update UI based on selection
+                    applyDrawModeBasedOnSelection();
                 }
         );
     }
+
+    private void applyDrawModeBasedOnSelection() {
+        Set<String> selectedFileIds = new HashSet<>();
+        for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
+            ANode node = item.getValue();
+            if (node != null) selectedFileIds.addAll(node.fileIds());
+        }
+
+        for (Map.Entry<String, Group> entry : loadedModels.entrySet()) {
+            String fileId = entry.getKey();
+            Group modelGroup = entry.getValue();
+            boolean isSelected = selectedFileIds.contains(fileId);
+
+            setDrawModeRecursive(modelGroup, isSelected ? DrawMode.FILL : DrawMode.LINE);
+        }
+    }
+
+    private void setDrawModeRecursive(Group group, DrawMode mode) {
+        for (javafx.scene.Node node : group.getChildren()) {
+            if (node instanceof javafx.scene.shape.Shape3D shape) {
+                shape.setDrawMode(mode);
+            } else if (node instanceof Group subGroup) {
+                setDrawModeRecursive(subGroup, mode);
+            }
+        }
+    }
+
 
     private void setupButtonHandlers() {
         controller.getIsAButton().setOnAction(e -> switchToIsATree());
@@ -197,9 +228,12 @@ public class WindowPresenter {
                 }
 
                 if (modelGroup != null && !innerGroup.getChildren().contains(modelGroup)) {
+                    setupClickHandler(modelGroup, fileId);
                     innerGroup.getChildren().add(modelGroup);
                 }
             }
+            applyDrawModeBasedOnSelection();
+
         }
 
         // Step 3: Allow layout pass, then recenter and adjust camera
@@ -213,6 +247,85 @@ public class WindowPresenter {
 
         setup3DScene(); // Ensure it's displayed
     }
+
+    private void setupClickHandler(Group modelGroup, String fileId) {
+        applyClickHandlerToShapes(modelGroup, fileId);
+    }
+
+    private void applyClickHandlerToShapes(Group group, String fileId) {
+        for (javafx.scene.Node node : group.getChildren()) {
+            if (node instanceof javafx.scene.shape.Shape3D shape) {
+                shape.setPickOnBounds(true);
+                shape.setOnMouseClicked(event -> {
+                    handleModelClick(fileId); // Just fill on click
+                    event.consume();
+                });
+            } else if (node instanceof Group subGroup) {
+                applyClickHandlerToShapes(subGroup, fileId);
+            }
+        }
+    }
+
+    private void handleModelClick(String fileId) {
+        TreeView<ANode> treeView = controller.getTreeView();
+        MultipleSelectionModel<TreeItem<ANode>> selectionModel = treeView.getSelectionModel();
+        TreeItem<ANode> item = findTreeItemByFileId(treeView.getRoot(), fileId);
+
+        if (item != null) {
+            expandTo(item); // Expand parent branches
+            selectionModel.clearAndSelect(treeView.getRow(item)); // Highlight without collapsing everything
+            treeView.scrollTo(treeView.getRow(item)); // Scroll to it
+        }
+
+        // Update draw modes
+        for (Map.Entry<String, Group> entry : loadedModels.entrySet()) {
+            String id = entry.getKey();
+            Group group = entry.getValue();
+            DrawMode mode = id.equals(fileId) ? DrawMode.FILL : DrawMode.LINE;
+            setDrawModeRecursive(group, mode);
+        }
+    }
+
+
+
+    private void expandTo(TreeItem<ANode> item) {
+        TreeItem<ANode> parent = item.getParent();
+        while (parent != null) {
+            parent.setExpanded(true);
+            parent = parent.getParent();
+        }
+    }
+
+
+
+    /*private void setupClickHandler(Group modelGroup, String fileId) {
+        modelGroup.setOnMouseClicked(event -> {
+            System.out.println("Clicked on model: " + fileId);
+            TreeItem<ANode> matchingItem = findTreeItemByFileId(controller.getTreeView().getRoot(), fileId);
+            if (matchingItem != null) {
+                controller.getTreeView().getSelectionModel().clearSelection();
+                controller.getTreeView().getSelectionModel().select(matchingItem);
+                controller.getTreeView().scrollTo(controller.getTreeView().getRow(matchingItem));
+            }
+
+            applyDrawModeBasedOnSelection(); // Update visual state
+            event.consume(); // Prevent bubbling
+        });
+    }*/
+    private TreeItem<ANode> findTreeItemByFileId(TreeItem<ANode> root, String fileId) {
+        if (root.getValue() != null && root.getValue().fileIds().contains(fileId)) {
+            return root;
+        }
+
+        for (TreeItem<ANode> child : root.getChildren()) {
+            TreeItem<ANode> result = findTreeItemByFileId(child, fileId);
+            if (result != null) return result;
+        }
+
+        return null;
+    }
+
+
 
     private void handleHide() {
         var selectedItems = controller.getTreeView().getSelectionModel().getSelectedItems();
