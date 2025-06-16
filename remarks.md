@@ -451,6 +451,7 @@ Nice you implemented Newick support.
 * `setupMouseRotation` could be separated into its own class, e.g., `MouseRotate`, for better modularity.
 * I couldn’t find explanations for **Task 3** and **Task 5**. I’ll update the general comment and restore the deducted points once you point me to where they are.
 * The close button is fixed in position—when I maximize the window, it stays in the same place instead of adjusting its position.
+* One nice touch is the dropdown for the buttons—it appears when the window is minimized to a certain extent.
 ---
 
 ### **Task 1**
