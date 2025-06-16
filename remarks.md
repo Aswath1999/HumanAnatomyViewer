@@ -441,3 +441,82 @@ Nice you implemented Newick support.
 ---
 
 **Total: 10/10**
+
+
+---
+
+## Assignment 06
+
+* `ObjParser` should ideally be part of the **model** package.
+* `setupMouseRotation` could be separated into its own class, e.g., `MouseRotate`, for better modularity.
+* I couldn’t find explanations for **Task 3** and **Task 5**. I’ll update the general comment and restore the deducted points once you point me to where they are.
+* The close button is fixed in position—when I maximize the window, it stays in the same place instead of adjusting its position.
+* One nice touch is the dropdown for the buttons—it appears when the window is minimized to a certain extent.
+---
+
+### **Task 1**
+
+**Implementation:**
+Everything has been implemented as required.
+
+**Points:** 1/1
+
+---
+
+### **Task 2**
+
+**Functionality:**
+Works as expected.
+
+**Points:** 2/2
+
+---
+
+### **Task 3**
+
+**Functionality:**
+Works fine overall, but the zoom functionality has issues. When zoomed in too far, it's difficult to zoom out again unless you press reset.
+You should consider improving this using a structure like:
+
+```java
+double yScroll = e.getDeltaY();
+double xScroll = e.getDeltaX();
+
+// On macOS, Shift usually modifies scroll behavior
+if ((!e.isShiftDown() && isMac) || (!e.isControlDown() && !isMac)) {
+    camera.setTranslateZ(camera.getTranslateZ() + yScroll);
+} else {
+    camera.setTranslateX(camera.getTranslateX() - xScroll);
+    camera.setTranslateY(camera.getTranslateY() - yScroll);
+}
+```
+
+Adjust this logic to match your existing code.
+
+**Points:** 1/2
+
+---
+
+### **Task 4**
+
+**Functionality:**
+Also works fine.
+
+**Points:** 2/2
+
+---
+
+### **Task 5**
+
+**Functionality:**
+Good job overall.  Functionality is implemented.
+(Still, please provide an explanation of this task in your submission.)
+
+**Points:** 2/3
+
+---
+
+### **Total: 8/10**
+
+Great work overall! 
+
