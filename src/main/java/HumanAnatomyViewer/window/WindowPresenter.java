@@ -31,6 +31,8 @@ public class WindowPresenter {
     private final WindowController controller;
     private final Model model;
 
+    private SceneInteractionHandler interactionHandler;
+
     private TreeItem<ANode> partOfRootItem;
     private TreeItem<ANode> isARootItem;
 
@@ -40,9 +42,6 @@ public class WindowPresenter {
 
     private final PerspectiveCamera camera = new PerspectiveCamera(true);
     private final Map<String, Group> loadedModels = new HashMap<>();
-
-    private Transform totalTransform = new Rotate();
-    private double xPrev, yPrev;
 
     private List<TreeItem<ANode>> searchResults = new ArrayList<>();
     private int currentSearchIndex = -1;
@@ -98,25 +97,6 @@ public class WindowPresenter {
         );
     }
 
-    private void applyDrawModeBasedOnSelection() {
-        for (Map.Entry<String, Group> entry : loadedModels.entrySet()) {
-            String fileId = entry.getKey();
-            Group modelGroup = entry.getValue();
-            boolean isSelected = selectedFileIds.contains(fileId);
-            setDrawModeRecursive(modelGroup, isSelected ? DrawMode.FILL : DrawMode.LINE);
-        }
-    }
-
-    private void setDrawModeRecursive(Group group, DrawMode mode) {
-        for (javafx.scene.Node node : group.getChildren()) {
-            if (node instanceof javafx.scene.shape.Shape3D shape) {
-                shape.setDrawMode(mode);
-            } else if (node instanceof Group subGroup) {
-                setDrawModeRecursive(subGroup, mode);
-            }
-        }
-    }
-
     private void setupButtonHandlers() {
         controller.getIsAButton().setOnAction(e -> switchToIsATree());
         controller.getPartOfButton().setOnAction(e -> switchToPartOfTree());
@@ -143,29 +123,23 @@ public class WindowPresenter {
     }
 
     private void handleExpand() {
-        for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
-            expand(item);
-        }
+        controller.getTreeView().getSelectionModel().getSelectedItems()
+                .forEach(this::expand);
     }
 
     private void handleCollapse() {
-        for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
-            collapse(item);
-        }
+        controller.getTreeView().getSelectionModel().getSelectedItems()
+                .forEach(this::collapse);
     }
 
     private void expand(TreeItem<ANode> item) {
-        if (item != null) {
-            item.setExpanded(true);
-            item.getChildren().forEach(this::expand);
-        }
+        item.setExpanded(true);
+        item.getChildren().forEach(this::expand);
     }
 
     private void collapse(TreeItem<ANode> item) {
-        if (item != null) {
-            item.getChildren().forEach(this::collapse);
-            item.setExpanded(false);
-        }
+        item.getChildren().forEach(this::collapse);
+        item.setExpanded(false);
     }
 
     private void handleSelectAll() {
@@ -191,36 +165,27 @@ public class WindowPresenter {
     }
 
     private void handleShow() {
-        var selectedItems = controller.getTreeView().getSelectionModel().getSelectedItems();
-
         innerGroup.getChildren().clear();
         innerGroup.getTransforms().clear();
         contentGroup.getTransforms().clear();
-        totalTransform = new Rotate();
 
-        for (TreeItem<ANode> item : selectedItems) {
+        for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
             ANode node = item.getValue();
             if (node == null) continue;
 
             for (String fileId : node.fileIds()) {
-                Group modelGroup = loadedModels.get(fileId);
-                if (modelGroup == null) {
+                Group modelGroup = loadedModels.computeIfAbsent(fileId, id -> {
                     try {
-                        String path = "/HumanAnatomy/BodyParts/" + fileId + ".obj";
-                        var url = getClass().getResource(path);
-                        if (url == null) continue;
-
-                        File file = new File(url.toURI());
-                        modelGroup = ObjIO.openObjFile(file);
-                        if (modelGroup != null) {
-                            loadedModels.put(fileId, modelGroup);
+                        var url = getClass().getResource("/HumanAnatomy/BodyParts/" + id + ".obj");
+                        if (url != null) {
+                            return ObjIO.openObjFile(new File(url.toURI()));
                         }
                     } catch (Exception e) {
-                        System.out.println("Failed to load model: " + fileId);
+                        System.err.println("Error loading model: " + id);
                         e.printStackTrace();
-                        continue;
                     }
-                }
+                    return null;
+                });
 
                 if (modelGroup != null && !innerGroup.getChildren().contains(modelGroup)) {
                     setupClickHandler(modelGroup, fileId);
@@ -242,34 +207,35 @@ public class WindowPresenter {
     }
 
     private void setupClickHandler(Group modelGroup, String fileId) {
-        applyClickHandlerToShapes(modelGroup, fileId);
-    }
-
-    private void applyClickHandlerToShapes(Group group, String fileId) {
-        for (javafx.scene.Node node : group.getChildren()) {
+        for (javafx.scene.Node node : modelGroup.getChildren()) {
             if (node instanceof javafx.scene.shape.Shape3D shape) {
                 shape.setPickOnBounds(true);
                 shape.setOnMouseClicked(event -> {
-                    handleModelClick(fileId);
+                    handleModelClick(fileId, event);
                     event.consume();
                 });
-            } else if (node instanceof Group subGroup) {
-                applyClickHandlerToShapes(subGroup, fileId);
             }
         }
     }
 
-    private void handleModelClick(String fileId) {
-        selectedFileIds.clear();
-        selectedFileIds.add(fileId);
+    private void handleModelClick(String fileId, javafx.scene.input.MouseEvent event) {
+        if (!event.isShiftDown() && !event.isControlDown()) {
+            selectedFileIds.clear();
+        }
+
+        if (selectedFileIds.contains(fileId)) {
+            selectedFileIds.remove(fileId);
+        } else {
+            selectedFileIds.add(fileId);
+        }
+
         syncSelectionFromFileIds();
         applyDrawModeBasedOnSelection();
     }
 
     private void syncSelectionFromFileIds() {
-        TreeView<ANode> tree = controller.getTreeView();
-        MultipleSelectionModel<TreeItem<ANode>> model = tree.getSelectionModel();
-
+        var tree = controller.getTreeView();
+        var model = tree.getSelectionModel();
         inSelectionUpdate = true;
         model.clearSelection();
         selectMatchingItems(tree.getRoot(), model);
@@ -280,10 +246,7 @@ public class WindowPresenter {
         if (item.getValue() != null && item.getValue().fileIds().stream().anyMatch(selectedFileIds::contains)) {
             expandPathTo(item);
             model.select(item);
-            Platform.runLater(() -> {
-                int row = controller.getTreeView().getRow(item);
-                if (row >= 0) controller.getTreeView().scrollTo(row);
-            });
+            Platform.runLater(() -> controller.getTreeView().scrollTo(controller.getTreeView().getRow(item)));
         }
         for (TreeItem<ANode> child : item.getChildren()) {
             selectMatchingItems(child, model);
@@ -298,133 +261,33 @@ public class WindowPresenter {
         }
     }
 
-    private TreeItem<ANode> findTreeItemByFileId(TreeItem<ANode> root, String fileId) {
-        if (root.getValue() != null && root.getValue().fileIds().contains(fileId)) {
-            return root;
-        }
-
-        for (TreeItem<ANode> child : root.getChildren()) {
-            TreeItem<ANode> result = findTreeItemByFileId(child, fileId);
-            if (result != null) return result;
-        }
-
-        return null;
-    }
-
-
-
     private void handleHide() {
-        var selectedItems = controller.getTreeView().getSelectionModel().getSelectedItems();
-        for (TreeItem<ANode> item : selectedItems) {
+        for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
             ANode node = item.getValue();
             if (node == null) continue;
             for (String fileId : node.fileIds()) {
-                Group model = loadedModels.get(fileId);
-                if (model != null) innerGroup.getChildren().remove(model);
+                innerGroup.getChildren().remove(loadedModels.get(fileId));
             }
         }
     }
 
     private void centerContentGroup() {
-
-        innerGroup.layout();   // Trigger layout update
+        innerGroup.layout();
         Bounds bounds = innerGroup.getBoundsInParent();
         double cx = (bounds.getMinX() + bounds.getMaxX()) / 2;
         double cy = (bounds.getMinY() + bounds.getMaxY()) / 2;
         double cz = (bounds.getMinZ() + bounds.getMaxZ()) / 2;
-        innerGroup.getTransforms().clear();
-        innerGroup.getTransforms().add(new Translate(-cx, -cy, -cz));
+        innerGroup.getTransforms().setAll(new Translate(-cx, -cy, -cz));
     }
 
     private void autoAdjustCamera() {
         innerGroup.applyCss();
         innerGroup.layout();
-
         Bounds bounds = innerGroup.getBoundsInParent();
-
-        double width = bounds.getWidth();
-        double height = bounds.getHeight();
-        double depth = bounds.getDepth();
-
-        double maxDim = Math.max(Math.max(width, height), depth);
-        double distance = maxDim * 2.2; // Increase multiplier for safety margin
-
-        // Center camera at (0,0,-distance)
+        double maxDim = Math.max(Math.max(bounds.getWidth(), bounds.getHeight()), bounds.getDepth());
         camera.setTranslateX(0);
         camera.setTranslateY(0);
-        camera.setTranslateZ(-distance);
-        System.out.println("Bounds: " + bounds);
-        System.out.println("Camera Z: " + camera.getTranslateZ());
-
-    }
-
-    /*private void handleColorChange() {
-        Color newColor = controller.getColorPicker().getValue();
-        var selectedItems = controller.getTreeView().getSelectionModel().getSelectedItems();
-
-        for (TreeItem<ANode> item : selectedItems) {
-            ANode node = item.getValue();
-            if (node == null) continue;
-
-            for (String fileId : node.fileIds()) {
-                Group modelGroup = loadedModels.get(fileId);
-                if (modelGroup != null) {
-                    applyColorToGroup(modelGroup, newColor);
-                }
-            }
-        }
-    }*/
-
-    private void handleColorChange() {
-        Color newColor = controller.getColorPicker().getValue();
-
-        for (String fileId : selectedFileIds) {
-            Group modelGroup = loadedModels.get(fileId);
-            if (modelGroup != null) {
-                applyColorToFilledShapes(modelGroup, newColor);
-            }
-        }
-    }
-
-
-    private void applyColorToFilledShapes(Group group, Color color) {
-        for (javafx.scene.Node node : group.getChildren()) {
-            if (node instanceof javafx.scene.shape.Shape3D shape) {
-                if (shape.getDrawMode() == DrawMode.FILL) {
-                    var material = shape.getMaterial();
-                    if (material instanceof javafx.scene.paint.PhongMaterial phong) {
-                        phong.setDiffuseColor(color);
-                    } else {
-                        javafx.scene.paint.PhongMaterial newMaterial = new javafx.scene.paint.PhongMaterial(color);
-                        shape.setMaterial(newMaterial);
-                    }
-                }
-            } else if (node instanceof Group subGroup) {
-                applyColorToFilledShapes(subGroup, color);
-            }
-        }
-    }
-
-
-
-
-
-
-
-    private void applyColorToGroup(Group group, Color color) {
-        group.getChildren().forEach(node -> {
-            if (node instanceof javafx.scene.shape.Shape3D shape) {
-                var material = shape.getMaterial();
-                if (material instanceof javafx.scene.paint.PhongMaterial phong) {
-                    phong.setDiffuseColor(color);
-                } else {
-                    javafx.scene.paint.PhongMaterial newMaterial = new javafx.scene.paint.PhongMaterial(color);
-                    shape.setMaterial(newMaterial);
-                }
-            } else if (node instanceof Group subGroup) {
-                applyColorToGroup(subGroup, color); // Recurse into nested groups
-            }
-        });
+        camera.setTranslateZ(-maxDim * 2.2);
     }
 
     private void setup3DScene() {
@@ -450,186 +313,123 @@ public class WindowPresenter {
 
             subScene.setOnKeyPressed(e -> {
                 switch (e.getCode()) {
-                    case Z: resetView(); break;
-                    case I: zoomIn(); break;
-                    case O: zoomOut(); break;
-                    case LEFT: rotateY(10); break;
-                    case RIGHT: rotateY(-10); break;
-                    case UP: rotateX(-10); break;
-                    case DOWN: rotateX(10); break;
+                    case Z -> interactionHandler.resetTransform();
+                    case I -> interactionHandler.zoom(50);
+                    case O -> interactionHandler.zoom(-50);
+                    case LEFT -> interactionHandler.rotateY(-10);
+                    case RIGHT -> interactionHandler.rotateY(10);
+                    case UP -> interactionHandler.rotateX(-10);
+                    case DOWN -> interactionHandler.rotateX(10);
                 }
             });
 
 
-            subScene.setOnMouseClicked(e -> subScene.requestFocus());
 
+            subScene.setOnMouseClicked(e -> subScene.requestFocus());
             subScene.widthProperty().bind(controller.getVisualizationPane().widthProperty());
             subScene.heightProperty().bind(controller.getVisualizationPane().heightProperty());
 
-            controller.getVisualizationPane().getChildren().clear();
-            controller.getVisualizationPane().getChildren().add(subScene);
+            controller.getVisualizationPane().getChildren().setAll(subScene);
 
-            setupMouseRotation(controller.getVisualizationPane());
-            setupMouseScroll(controller.getVisualizationPane());
-
-            contentGroup.getTransforms().setAll(new Rotate(0, Rotate.X_AXIS));
+            interactionHandler = new SceneInteractionHandler(contentGroup, camera);
+            interactionHandler.setupMouseInteraction(controller.getVisualizationPane());
         }
     }
-    private void rotateX(double angle) {
-        applyGlobalRotation(contentGroup, Rotate.X_AXIS, angle);
+
+
+    private void applyDrawModeBasedOnSelection() {
+        for (Map.Entry<String, Group> entry : loadedModels.entrySet()) {
+            String fileId = entry.getKey();
+            Group modelGroup = entry.getValue();
+            boolean isSelected = selectedFileIds.contains(fileId);
+            setDrawModeRecursive(modelGroup, isSelected ? DrawMode.FILL : DrawMode.LINE);
+        }
     }
-
-    private void rotateY(double angle) {
-        applyGlobalRotation(contentGroup, Rotate.Y_AXIS, angle);
-    }
-
-
-    private void setupMouseRotation(Pane pane) {
-        pane.setOnMousePressed(e -> {
-            xPrev = e.getSceneX();
-            yPrev = e.getSceneY();
-        });
-
-        pane.setOnMouseDragged(e -> {
-            double dx = e.getSceneX() - xPrev;
-            double dy = e.getSceneY() - yPrev;
-
-            Point3D axis = new Point3D(dy, -dx, 0);
-            if (axis.magnitude() == 0) return;
-
-            double angle = Math.sqrt(dx * dx + dy * dy) * 0.5;
-            applyGlobalRotation(contentGroup, axis, angle);
-
-            xPrev = e.getSceneX();
-            yPrev = e.getSceneY();
-        });
-    }
-
-    private void setupMouseScroll(Pane pane) {
-        pane.setOnScroll(e -> {
-            if (e.isShiftDown()) {
-                moveCamera(e.getDeltaX(), e.getDeltaY());
-            } else {
-                if (e.getDeltaY() > 0) zoomIn();
-                else zoomOut();
+    private void setDrawModeRecursive(Group group, DrawMode mode) {
+        for (javafx.scene.Node node : group.getChildren()) {
+            if (node instanceof javafx.scene.shape.Shape3D shape) {
+                shape.setDrawMode(mode);
+            } else if (node instanceof Group subGroup) {
+                setDrawModeRecursive(subGroup, mode);
             }
-        });
-    }
-
-    private void moveCamera(double dx, double dy) {
-        camera.setTranslateX(camera.getTranslateX() - dx);
-        camera.setTranslateY(camera.getTranslateY() - dy);
-    }
-
-    private void zoomIn() {
-        zoomCameraTowardsObject(50);
-    }
-
-    private void zoomOut() {
-        zoomCameraTowardsObject(-50);
-    }
-
-    private void zoomCameraTowardsObject(double zoomAmount) {
-        Point3D camPos = new Point3D(camera.getTranslateX(), camera.getTranslateY(), camera.getTranslateZ());
-        Point3D center = getContentCenterInScene();
-        Point3D direction = center.subtract(camPos).normalize();
-
-        double minDistance = 50;  // Don't get closer than this
-        double maxDistance = 2000; // Optional max distance
-
-        double currentDistance = center.distance(camPos);
-        double newDistance = currentDistance - zoomAmount;
-
-        if (newDistance < minDistance || newDistance > maxDistance) {
-            return; // Do not zoom if too close or too far
         }
-
-        Point3D newPos = camPos.add(direction.multiply(zoomAmount));
-        camera.setTranslateX(newPos.getX());
-        camera.setTranslateY(newPos.getY());
-        camera.setTranslateZ(newPos.getZ());
     }
 
-
-    private Point3D getContentCenterInScene() {
-        Bounds bounds = contentGroup.getBoundsInParent();
-        return new Point3D(
-                (bounds.getMinX() + bounds.getMaxX()) / 2.0,
-                (bounds.getMinY() + bounds.getMaxY()) / 2.0,
-                (bounds.getMinZ() + bounds.getMaxZ()) / 2.0
-        );
+    private void handleColorChange() {
+        Color newColor = controller.getColorPicker().getValue();
+        for (String fileId : selectedFileIds) {
+            Group group = loadedModels.get(fileId);
+            if (group != null) {
+                applyColorToFilledShapes(group, newColor);
+            }
+        }
     }
 
-    private void applyGlobalRotation(Group group, Point3D axis, double angle) {
-        Point3D pivot = getContentCenterInScene();
-        Rotate rotate = new Rotate(angle, pivot.getX(), pivot.getY(), pivot.getZ(), axis);
-        totalTransform = rotate.createConcatenation(totalTransform);
-        group.getTransforms().setAll(totalTransform);
+    private void applyColorToFilledShapes(Group group, Color color) {
+        for (javafx.scene.Node node : group.getChildren()) {
+            if (node instanceof javafx.scene.shape.Shape3D shape && shape.getDrawMode() == DrawMode.FILL) {
+                if (shape.getMaterial() instanceof javafx.scene.paint.PhongMaterial phong) {
+                    phong.setDiffuseColor(color);
+                } else {
+                    shape.setMaterial(new javafx.scene.paint.PhongMaterial(color));
+                }
+            } else if (node instanceof Group subGroup) {
+                applyColorToFilledShapes(subGroup, color);
+            }
+        }
     }
-
-    private void resetView() {
-        totalTransform = new Rotate();  // Clear rotation
-        contentGroup.getTransforms().setAll(totalTransform); // Apply cleared rotation
-
-        camera.setTranslateX(0);
-        camera.setTranslateY(0);
-        camera.setTranslateZ(-500);
-
-        // Re-center content relative to origin
-        innerGroup.getTransforms().clear();
-        centerContentGroup();  // Adds centering Translate
-
-
-        xPrev = yPrev = 0;
-    }
-
 
     // ==== Search Handlers ====
 
-    public void handleFind() {
-        String query = controller.getSearchTextField().getText().trim().toLowerCase();
-        searchResults.clear();              // ✅ Always clear before new search
+    public boolean handleFind(String query) {
+        query = query.trim().toLowerCase();
+        searchResults.clear();
         currentSearchIndex = -1;
 
-        if (query.isEmpty()) return;
+        if (query.isEmpty()) {
+            controller.getSearchStatusLabel().setText("Please enter a search term.");
+            return false;
+        }
 
-        TreeItem<ANode> root = controller.getTreeView().getRoot();
-        findMatchingItems(root, query);
-
+        findMatchingItems(controller.getTreeView().getRoot(), query);
         if (!searchResults.isEmpty()) {
             currentSearchIndex = 0;
             selectTreeItem(searchResults.get(currentSearchIndex));
+            controller.getSearchStatusLabel().setText("Found " + searchResults.size() + " matches");
+            return true;
         } else {
-            System.out.println("No match found for: " + query);
+            controller.getSearchStatusLabel().setText("No match found for: \"" + query + "\"");
+            return false;
         }
+    }
+
+    public boolean handleFind() {
+        return handleFind(controller.getSearchTextField().getText());
     }
 
     public void handleFirst() {
-        if (searchResults.isEmpty()) {
-            handleFind(); // ✅ Refresh results if they were stale or cleared
-            return;
-        }
+        String query = controller.getSearchTextField().getText();
+        if (searchResults.isEmpty() && !handleFind(query)) return;
         currentSearchIndex = 0;
         selectTreeItem(searchResults.get(currentSearchIndex));
+        controller.getSearchStatusLabel().setText("Match 1 of " + searchResults.size());
     }
 
     public void handleNext() {
-        if (searchResults.isEmpty()) {
-            handleFind(); // ✅ Refresh results in case user didn't click "Find" again
-            return;
-        }
-
+        String query = controller.getSearchTextField().getText();
+        if (searchResults.isEmpty() && !handleFind(query)) return;
         currentSearchIndex = (currentSearchIndex + 1) % searchResults.size();
         selectTreeItem(searchResults.get(currentSearchIndex));
+        controller.getSearchStatusLabel().setText("Match " + (currentSearchIndex + 1) + " of " + searchResults.size());
     }
 
     public void handleAll() {
-        if (searchResults.isEmpty()) return;
-        var selectionModel = controller.getTreeView().getSelectionModel();
-        selectionModel.clearSelection();
-        for (TreeItem<ANode> match : searchResults) {
-            selectionModel.select(match);
-        }
+        String query = controller.getSearchTextField().getText();
+        if (searchResults.isEmpty() && !handleFind(query)) return;
+        var model = controller.getTreeView().getSelectionModel();
+        model.clearSelection();
+        for (TreeItem<ANode> match : searchResults) model.select(match);
+        controller.getSearchStatusLabel().setText(searchResults.size() + " matches selected");
     }
 
     private void findMatchingItems(TreeItem<ANode> item, String query) {

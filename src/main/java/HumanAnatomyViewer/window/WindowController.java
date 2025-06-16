@@ -39,6 +39,10 @@ public class WindowController {
     @FXML private void handleDeselect() {}
     @FXML private void handleShow() {}
     @FXML private void handleHide() {}
+    @FXML private Label searchStatusLabel;
+
+
+
 
     // === Getters for Presenter Access ===
     public Button getExpandButton() { return expandButton; }
@@ -61,4 +65,8 @@ public class WindowController {
     public ColorPicker getColorPicker() { return colorPicker; }
 
     public Pane getVisualizationPane() { return visualizationPane; }
+
+
+    public Label getSearchStatusLabel() { return searchStatusLabel; }
+
 }
