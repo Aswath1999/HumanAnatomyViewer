@@ -23,56 +23,68 @@ import java.util.*;
  */
 public class ModelInterface {
 
-    // Parent node that contains all 3D models (used for rendering in the scene)
+    // === FIELDS ===
+
+    // Parent container for all 3D models in the JavaFX scene
     private final Group innerGroup;
 
-    // TreeView representing the anatomical hierarchy
+    // The TreeView that displays the anatomical hierarchy
     private final TreeView<ANode> treeView;
 
-    // Maps file IDs to their loaded 3D Group (to avoid reloading)
+    // Cache: maps file IDs (e.g. bone_001) to their corresponding loaded 3D Group
     private final Map<String, Group> loadedModels = new HashMap<>();
 
-    // Tracks currently selected file IDs (used for highlighting and coloring)
+    // Tracks currently selected model IDs to apply highlighting or interaction
     private final Set<String> selectedFileIds = new HashSet<>();
 
-    // Flag to avoid recursive selection feedback loops
+    // Prevents feedback loops during programmatic selection updates
     private boolean inSelectionUpdate = false;
 
-    // Constructor: initializes with the main rendering group and the tree view
+    /**
+     * Constructor for ModelInterface.
+     * @param innerGroup The 3D group that will hold model meshes.
+     * @param treeView The tree representing the anatomical structure.
+     */
     public ModelInterface(Group innerGroup, TreeView<ANode> treeView) {
         this.innerGroup = innerGroup;
         this.treeView = treeView;
     }
 
+    // === CORE METHODS ===
+
     /**
-     * Loads and displays models associated with selected tree nodes.
-     * Clears previous models and redraws newly selected ones.
+     * Loads and displays all 3D models corresponding to the selected TreeView nodes.
+     * Clears previous models and replaces them with the newly selected ones.
+     * @param selectedItems Selected nodes in the TreeView
      */
     public void loadAndDisplayModels(List<TreeItem<ANode>> selectedItems) {
-        innerGroup.getChildren().clear();   // Clear old models
-        innerGroup.getTransforms().clear(); // Clear any old transforms (like rotations)
+        innerGroup.getChildren().clear();   // Remove all currently displayed models
+        innerGroup.getTransforms().clear(); // Reset any applied transforms (e.g. rotations)
 
         for (TreeItem<ANode> item : selectedItems) {
             ANode node = item.getValue();
             if (node == null) continue;
 
-            // For each file associated with this node
+            // For each file ID (model) associated with this node
             for (String fileId : node.fileIds()) {
-                // Load model if not already loaded
+                // Try to load model if not already loaded
                 Group modelGroup = loadModelIfAbsent(fileId);
 
+                // If valid and not already displayed, add it to the group
                 if (modelGroup != null && !innerGroup.getChildren().contains(modelGroup)) {
-                    applyClickHandler(modelGroup, fileId); // Allow mouse clicks to select
+                    applyClickHandler(modelGroup, fileId); // Add click interactivity
                     innerGroup.getChildren().add(modelGroup);
                 }
             }
         }
 
-        applyDrawModeBasedOnSelection(); // Update draw mode based on current selection
+        // Visually indicate selection with draw mode changes
+        applyDrawModeBasedOnSelection();
     }
 
     /**
-     * Hides models associated with selected tree nodes by removing them from the scene.
+     * Hides (removes) models associated with selected tree nodes from the display.
+     * @param selectedItems List of selected TreeView nodes
      */
     public void hideModels(List<TreeItem<ANode>> selectedItems) {
         for (TreeItem<ANode> item : selectedItems) {
@@ -86,12 +98,14 @@ public class ModelInterface {
     }
 
     /**
-     * Loads a model from file only if it hasn't been loaded before.
+     * Attempts to load a 3D model from file if not already loaded.
+     * @param fileId The ID of the file/model (e.g., "lung_left")
+     * @return Loaded Group containing the model, or null if not found or failed
      */
     private Group loadModelIfAbsent(String fileId) {
         return loadedModels.computeIfAbsent(fileId, id -> {
             try {
-                // Locate the .obj file in resources
+                // Construct path to .obj file in resources
                 URL url = getClass().getResource("/HumanAnatomy/BodyParts/" + id + ".obj");
                 if (url != null) {
                     return ObjIO.openObjFile(new File(url.toURI()));
@@ -104,29 +118,36 @@ public class ModelInterface {
         });
     }
 
+    // === INTERACTION METHODS ===
+
     /**
-     * Recursively attaches click listeners to all 3D shapes in the model.
+     * Applies a mouse click handler to all Shape3D nodes inside the model group.
+     * Allows user to click models in the 3D scene to select them.
+     * @param modelGroup The loaded 3D model
+     * @param fileId The associated file ID
      */
     private void applyClickHandler(Group modelGroup, String fileId) {
         for (var node : modelGroup.getChildren()) {
             if (node instanceof Shape3D shape) {
-                shape.setPickOnBounds(true); // Enables click detection
-                shape.setUserData(fileId); //  Store file ID in userData
+                shape.setPickOnBounds(true);           // Enable click detection
+                shape.setUserData(fileId);             // Store ID in metadata
                 shape.setOnMouseClicked(event -> {
-                    handleModelClick(fileId, event);
-                    event.consume(); // Prevent event from bubbling up
+                    handleModelClick(fileId, event);   // Handle selection
+                    event.consume();                   // Prevent propagation
                 });
             } else if (node instanceof Group subGroup) {
-                applyClickHandler(subGroup, fileId); // Recurse into nested groups
+                applyClickHandler(subGroup, fileId);   // Recursively apply to children
             }
         }
     }
 
     /**
-     * Handles mouse click on a model to update selection state.
+     * Handles model selection when user clicks on a shape in the 3D view.
+     * @param fileId The file ID of the clicked model
+     * @param event The mouse event
      */
     private void handleModelClick(String fileId, MouseEvent event) {
-        // If no modifier keys, clear previous selection
+        // If not holding shift/ctrl, start new selection
         if (!event.isShiftDown() && !event.isControlDown()) {
             selectedFileIds.clear();
         }
@@ -138,12 +159,13 @@ public class ModelInterface {
             selectedFileIds.add(fileId);
         }
 
-        syncTreeSelectionFromFileIds(); // Highlight nodes in TreeView
-        applyDrawModeBasedOnSelection(); // Change draw mode for selected models
+        // Sync tree selection and draw mode after interaction
+        syncTreeSelectionFromFileIds();
+        applyDrawModeBasedOnSelection();
     }
 
     /**
-     * Updates the TreeView selection based on currently selected file IDs.
+     * Updates the TreeView selection to match currently selected file IDs.
      */
     private void syncTreeSelectionFromFileIds() {
         MultipleSelectionModel<TreeItem<ANode>> model = treeView.getSelectionModel();
@@ -154,16 +176,18 @@ public class ModelInterface {
     }
 
     /**
-     * Recursively selects all tree items whose file IDs match selected models.
+     * Recursively selects all tree items whose ANode contains a selected file ID.
+     * @param item Tree node to test
+     * @param model Selection model of the TreeView
      */
     private void selectMatchingItems(TreeItem<ANode> item, MultipleSelectionModel<TreeItem<ANode>> model) {
         if (item.getValue() != null &&
                 item.getValue().fileIds().stream().anyMatch(selectedFileIds::contains)) {
 
-            expandPathTo(item); // Expand the parent path so it's visible
-            model.select(item); // Select the item
+            expandPathTo(item); // Expand parents so item is visible
+            model.select(item); // Programmatically select it
 
-            // Scroll to the selected item (delayed to ensure UI updates correctly)
+            // Scroll to selected item in the TreeView (UI-safe)
             Platform.runLater(() -> {
                 int row = treeView.getRow(item);
                 if (row >= 0) treeView.scrollTo(row);
@@ -176,7 +200,8 @@ public class ModelInterface {
     }
 
     /**
-     * Expands all parent nodes of the given item to ensure it's visible in the TreeView.
+     * Expands all parents of a given TreeItem to make it visible.
+     * @param item The target tree item
      */
     private void expandPathTo(TreeItem<ANode> item) {
         TreeItem<ANode> parent = item.getParent();
@@ -186,8 +211,10 @@ public class ModelInterface {
         }
     }
 
+    // === DRAW MODE & COLOR METHODS ===
+
     /**
-     * Changes draw mode (FILL vs LINE) depending on whether each model is selected.
+     * Applies draw modes to models: selected = FILL, unselected = LINE.
      */
     public void applyDrawModeBasedOnSelection() {
         for (Map.Entry<String, Group> entry : loadedModels.entrySet()) {
@@ -200,7 +227,9 @@ public class ModelInterface {
     }
 
     /**
-     * Recursively sets the draw mode on all 3D shapes within a group.
+     * Recursively sets the draw mode for all Shape3D nodes inside a Group.
+     * @param group Parent group
+     * @param mode The draw mode to apply
      */
     private void setDrawModeRecursive(Group group, DrawMode mode) {
         for (var node : group.getChildren()) {
@@ -213,7 +242,8 @@ public class ModelInterface {
     }
 
     /**
-     * Applies a given color to all selected and filled 3D models.
+     * Applies a color to all selected and filled 3D models.
+     * @param color The JavaFX Color to apply
      */
     public void applyColorToSelected(Color color) {
         for (String fileId : selectedFileIds) {
@@ -225,23 +255,25 @@ public class ModelInterface {
     }
 
     /**
-     * Recursively applies color to all shapes with FILL draw mode inside a group.
+     * Recursively applies a color to all Shape3D nodes with FILL mode inside a group.
+     * @param group The model group
+     * @param color The color to apply
      */
     private void applyColorToFilledShapes(Group group, Color color) {
         for (var node : group.getChildren()) {
             if (node instanceof Shape3D shape && shape.getDrawMode() == DrawMode.FILL) {
                 if (shape.getMaterial() instanceof PhongMaterial phong) {
-                    phong.setDiffuseColor(color); // Change existing material color
+                    phong.setDiffuseColor(color); // Modify existing material
                 } else {
-                    shape.setMaterial(new PhongMaterial(color)); // Assign new material
+                    shape.setMaterial(new PhongMaterial(color)); // Assign new one
                 }
             } else if (node instanceof Group subGroup) {
-                applyColorToFilledShapes(subGroup, color); // Recurse
+                applyColorToFilledShapes(subGroup, color);
             }
         }
     }
 
-    // === Getters ===
+    // === GETTERS ===
 
     public Set<String> getSelectedFileIds() {
         return selectedFileIds;
