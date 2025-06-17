@@ -9,21 +9,25 @@ import javafx.scene.control.TreeView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class TreeSearchHandler {
 
-    private final TreeView<ANode> treeView;
+    private final Supplier<TreeView<ANode>> treeViewSupplier;
     private final Label statusLabel;
 
     private final List<TreeItem<ANode>> searchResults = new ArrayList<>();
     private int currentIndex = -1;
+    private TreeItem<ANode> lastSearchRoot = null;
 
-    public TreeSearchHandler(TreeView<ANode> treeView, Label statusLabel) {
-        this.treeView = treeView;
+    public TreeSearchHandler(Supplier<TreeView<ANode>> treeViewSupplier, Label statusLabel) {
+        this.treeViewSupplier = treeViewSupplier;
         this.statusLabel = statusLabel;
     }
 
     public boolean search(String query) {
+        TreeView<ANode> treeView = treeViewSupplier.get(); // 🔁 always get fresh reference
+
         query = query.trim().toLowerCase();
         searchResults.clear();
         currentIndex = -1;
@@ -33,11 +37,13 @@ public class TreeSearchHandler {
             return false;
         }
 
-        findMatches(treeView.getRoot(), query);
+        TreeItem<ANode> root = treeView.getRoot();
+        lastSearchRoot = root;
+        findMatches(root, query);
 
         if (!searchResults.isEmpty()) {
             currentIndex = 0;
-            selectItem(searchResults.get(currentIndex));
+            selectItem(treeView, searchResults.get(currentIndex));
             statusLabel.setText("Found " + searchResults.size() + " matches");
             return true;
         } else {
@@ -47,29 +53,40 @@ public class TreeSearchHandler {
     }
 
     public void showFirst(String query) {
-        if (searchResults.isEmpty() && !search(query)) return;
+        TreeView<ANode> treeView = treeViewSupplier.get();
+        if (treeRootChanged(treeView) || searchResults.isEmpty()) {
+            if (!search(query)) return;
+        }
 
         currentIndex = 0;
-        selectItem(searchResults.get(currentIndex));
+        selectItem(treeView, searchResults.get(currentIndex));
         statusLabel.setText("Match 1 of " + searchResults.size());
     }
 
     public void showNext(String query) {
-        if (searchResults.isEmpty() && !search(query)) return;
+        TreeView<ANode> treeView = treeViewSupplier.get();
+        if (treeRootChanged(treeView) || searchResults.isEmpty()) {
+            if (!search(query)) return;
+        }
 
         currentIndex = (currentIndex + 1) % searchResults.size();
-        selectItem(searchResults.get(currentIndex));
+        selectItem(treeView, searchResults.get(currentIndex));
         statusLabel.setText("Match " + (currentIndex + 1) + " of " + searchResults.size());
     }
 
     public void selectAll(String query) {
-        if (searchResults.isEmpty() && !search(query)) return;
+        TreeView<ANode> treeView = treeViewSupplier.get();
+        if (treeRootChanged(treeView) || searchResults.isEmpty()) {
+            if (!search(query)) return;
+        }
 
         MultipleSelectionModel<TreeItem<ANode>> model = treeView.getSelectionModel();
         model.clearSelection();
+
         for (TreeItem<ANode> item : searchResults) {
             model.select(item);
         }
+
         statusLabel.setText(searchResults.size() + " matches selected");
     }
 
@@ -82,10 +99,15 @@ public class TreeSearchHandler {
         }
     }
 
-    private void selectItem(TreeItem<ANode> item) {
+    private void selectItem(TreeView<ANode> treeView, TreeItem<ANode> item) {
         MultipleSelectionModel<TreeItem<ANode>> model = treeView.getSelectionModel();
         model.clearSelection();
         model.select(item);
+
         Platform.runLater(() -> treeView.scrollTo(treeView.getRow(item)));
+    }
+
+    private boolean treeRootChanged(TreeView<ANode> treeView) {
+        return treeView.getRoot() != lastSearchRoot;
     }
 }

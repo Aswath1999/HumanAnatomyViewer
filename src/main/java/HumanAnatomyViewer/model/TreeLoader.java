@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class TreeLoader {
-
     /**
      * Loads a tree or graph structure from three data files.
      *

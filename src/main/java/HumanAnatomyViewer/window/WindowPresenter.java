@@ -18,81 +18,109 @@ import java.util.*;
 
 public class WindowPresenter {
 
-    private final Stage stage;
-    private final WindowController controller;
-    private final Model model;
+    // === Core application components ===
+    private final Stage stage;                        // JavaFX window stage
+    private final WindowController controller;        // Provides access to all FXML GUI elements
+    private final Model model;                        // Logical data model (tree hierarchy, file structure)
 
-    private TreeItem<ANode> partOfRootItem;
-    private TreeItem<ANode> isARootItem;
+    // === Tree structure ===
+    private TreeItem<ANode> partOfRootItem;           // Tree root for "part-of" hierarchy
+    private TreeItem<ANode> isARootItem;              // Tree root for "is-a" hierarchy
 
-    private final Group innerGroup = new Group();
-    private final Group contentGroup = new Group();
-    private final Group root3D = new Group();
-    private final PerspectiveCamera camera = new PerspectiveCamera(true);
+    // === 3D content containers ===
+    private final Group innerGroup = new Group();     // Holds models; can be centered
+    private final Group contentGroup = new Group();   // Wraps innerGroup; rotates with mouse
+    private final Group root3D = new Group();         // Full 3D scene contents (models + lights)
+    private final PerspectiveCamera camera = new PerspectiveCamera(true); // 3D camera
 
-    private SceneInteractionHandler interactionHandler;
-    private ModelInterface modelInterface;
-    private TreeSearchHandler searchHandler;
+    // === Logic handlers ===
+    private SceneInteractionHandler interactionHandler;   // Handles mouse/keyboard interaction
+    private ModelInterface modelInterface;                // Handles model loading/display/styling
+    private TreeSearchHandler searchHandler;              // Handles search in the tree
 
+    /**
+     * Constructor initializes components and handlers.
+     */
     public WindowPresenter(Stage stage, WindowController controller, Model model) {
         this.stage = stage;
         this.controller = controller;
         this.model = model;
 
-        this.modelInterface = new ModelInterface(innerGroup, controller.getTreeView());
-        this.searchHandler = new TreeSearchHandler(controller.getTreeView(), controller.getSearchStatusLabel());
+        // Pass active TreeView (based on selected tab) — used for selection sync & model highlighting
+        this.modelInterface = new ModelInterface(innerGroup, controller.getActiveTreeView());
+        this.searchHandler = new TreeSearchHandler(controller::getActiveTreeView, controller.getSearchStatusLabel());
 
-        initializeTrees();
-        setupTreeSelectionListener();
-        setupButtonHandlers();
+        initializeTrees();               // Build and assign the tree structure
+        setupTreeSelectionListener();    // Connect selection events to 3D model logic
+        setupButtonHandlers();           // Wire up UI buttons to behavior
     }
 
+    /**
+     * Builds both tree hierarchies from the model and assigns them to the TreeView.
+     */
     private void initializeTrees() {
         partOfRootItem = buildTreeItem(model.getPartOfRoot());
         isARootItem = buildTreeItem(model.getIsARoot());
 
-        TreeView<ANode> tree = controller.getTreeView();
-        tree.setRoot(partOfRootItem);
-        tree.setShowRoot(true);
-        tree.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        controller.getPartOfTreeView().setRoot(partOfRootItem);
+        controller.getIsATreeView().setRoot(isARootItem);
+
+        controller.getPartOfTreeView().getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        controller.getIsATreeView().getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
     }
 
+    /**
+     * Recursively converts an ANode tree into a TreeItem tree.
+     */
     private TreeItem<ANode> buildTreeItem(ANode node) {
         TreeItem<ANode> item = new TreeItem<>(node);
         for (ANode child : node.children()) {
             item.getChildren().add(buildTreeItem(child));
         }
-        item.setExpanded(false);
+        item.setExpanded(false);  // Tree items are collapsed by default
         return item;
     }
 
+    /**
+     * Adds a listener to the TreeView selection to update 3D model selection accordingly.
+     */
     private void setupTreeSelectionListener() {
-        controller.getTreeView().getSelectionModel().getSelectedItems().addListener(
-                (ListChangeListener<TreeItem<ANode>>) change -> {
-                    if (modelInterface.isInSelectionUpdate()) return;
+        ListChangeListener<TreeItem<ANode>> listener = change -> {
+            if (modelInterface.isInSelectionUpdate()) return;
 
-                    modelInterface.getSelectedFileIds().clear();
-                    for (TreeItem<ANode> item : controller.getTreeView().getSelectionModel().getSelectedItems()) {
-                        if (item.getValue() != null) {
-                            modelInterface.getSelectedFileIds().addAll(item.getValue().fileIds());
-                        }
-                    }
-                    modelInterface.applyDrawModeBasedOnSelection();
+            modelInterface.getSelectedFileIds().clear();
+            for (TreeItem<ANode> item : controller.getActiveTreeView().getSelectionModel().getSelectedItems()) {
+                if (item.getValue() != null) {
+                    modelInterface.getSelectedFileIds().addAll(item.getValue().fileIds());
                 }
-        );
+            }
+            modelInterface.applyDrawModeBasedOnSelection();
+        };
+
+        controller.getPartOfTreeView().getSelectionModel().getSelectedItems().addListener(listener);
+        controller.getIsATreeView().getSelectionModel().getSelectedItems().addListener(listener);
     }
 
+
+    /**
+     * Sets up all button event handlers using controller’s GUI elements.
+     */
     private void setupButtonHandlers() {
-        controller.getIsAButton().setOnAction(e -> controller.getTreeView().setRoot(isARootItem));
-        controller.getPartOfButton().setOnAction(e -> controller.getTreeView().setRoot(partOfRootItem));
+
         controller.getExpandButton().setOnAction(e -> expandSelected());
         controller.getCollapseButton().setOnAction(e -> collapseSelected());
         controller.getSelectButton().setOnAction(e -> selectAllDescendants());
-        controller.getDeselectButton().setOnAction(e -> controller.getTreeView().getSelectionModel().clearSelection());
+        controller.getDeselectButton().setOnAction(e ->
+                controller.getActiveTreeView().getSelectionModel().clearSelection());
+
         controller.getShowButton().setOnAction(e -> handleShow());
-        controller.getHideButton().setOnAction(e -> modelInterface.hideModels(controller.getTreeView().getSelectionModel().getSelectedItems()));
+        controller.getHideButton().setOnAction(e ->
+                modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));
+
         controller.getColorPicker().setOnAction(e -> modelInterface.applyColorToSelected(controller.getColorPicker().getValue()));
 
+        // Search-related buttons
         controller.getFindButton().setOnAction(e -> handleFind());
         controller.getFirstButton().setOnAction(e -> handleFirst());
         controller.getNextButton().setOnAction(e -> handleNext());
@@ -100,13 +128,16 @@ public class WindowPresenter {
         controller.getSearchTextField().setOnAction(e -> handleFind());
     }
 
+    // ==== Tree manipulation helpers ====
+
     private void expandSelected() {
-        controller.getTreeView().getSelectionModel().getSelectedItems().forEach(this::expand);
+        controller.getActiveTreeView().getSelectionModel().getSelectedItems().forEach(this::expand);
     }
 
     private void collapseSelected() {
-        controller.getTreeView().getSelectionModel().getSelectedItems().forEach(this::collapse);
+        controller.getActiveTreeView().getSelectionModel().getSelectedItems().forEach(this::collapse);
     }
+
 
     private void expand(TreeItem<ANode> item) {
         item.setExpanded(true);
@@ -118,11 +149,15 @@ public class WindowPresenter {
         item.setExpanded(false);
     }
 
+    /**
+     * Selects all descendants of the currently selected nodes.
+     */
     private void selectAllDescendants() {
-        TreeView<ANode> tree = controller.getTreeView();
+        TreeView<ANode> tree = controller.getActiveTreeView();
         var model = tree.getSelectionModel();
         List<TreeItem<ANode>> base = new ArrayList<>(model.getSelectedItems());
         model.clearSelection();
+
         for (TreeItem<ANode> item : base) {
             model.select(item);
             collectDescendants(item, model);
@@ -136,8 +171,10 @@ public class WindowPresenter {
         }
     }
 
+    // ==== 3D scene setup and display ====
+
     private void handleShow() {
-        modelInterface.loadAndDisplayModels(controller.getTreeView().getSelectionModel().getSelectedItems());
+        modelInterface.loadAndDisplayModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems());
 
         Platform.runLater(() -> {
             innerGroup.applyCss();
@@ -146,9 +183,12 @@ public class WindowPresenter {
             autoAdjustCamera();
         });
 
-        setup3DScene();
+        setup3DScene(); // Only sets up once
     }
 
+    /**
+     * Centers the innerGroup around origin by translating its center to (0,0,0).
+     */
     private void centerContentGroup() {
         innerGroup.layout();
         Bounds bounds = innerGroup.getBoundsInParent();
@@ -158,6 +198,9 @@ public class WindowPresenter {
         innerGroup.getTransforms().setAll(new Translate(-cx, -cy, -cz));
     }
 
+    /**
+     * Moves the camera back based on model size so the whole model fits in view.
+     */
     private void autoAdjustCamera() {
         innerGroup.applyCss();
         innerGroup.layout();
@@ -165,30 +208,38 @@ public class WindowPresenter {
         double maxDim = Math.max(Math.max(bounds.getWidth(), bounds.getHeight()), bounds.getDepth());
         camera.setTranslateX(0);
         camera.setTranslateY(0);
-        camera.setTranslateZ(-maxDim * 2.2);
+        camera.setTranslateZ(-maxDim * 2.2); // Pull camera far enough back
     }
 
+    /**
+     * Sets up the 3D scene (lighting, camera, interaction).
+     */
     private void setup3DScene() {
         if (root3D.getChildren().isEmpty()) {
             contentGroup.getChildren().add(innerGroup);
             root3D.getChildren().add(contentGroup);
 
+            // Add lighting
             PointLight pointLight = new PointLight(Color.WHITE);
             pointLight.setTranslateX(-500);
             pointLight.setTranslateY(-500);
             pointLight.setTranslateZ(-500);
+
             AmbientLight ambientLight = new AmbientLight(Color.DARKGRAY);
             root3D.getChildren().addAll(pointLight, ambientLight);
 
+            // Camera configuration
             camera.setNearClip(0.1);
             camera.setFarClip(10000);
             camera.setTranslateZ(-500);
 
+            // Create SubScene for 3D rendering
             SubScene subScene = new SubScene(root3D, 600, 600, true, SceneAntialiasing.BALANCED);
             subScene.setCamera(camera);
             subScene.setFill(Color.LIGHTGRAY);
             subScene.setOnMouseClicked(e -> subScene.requestFocus());
 
+            // Keyboard shortcuts for zoom/rotate/reset
             subScene.setOnKeyPressed(e -> {
                 KeyCode code = e.getCode();
                 switch (code) {
@@ -202,16 +253,18 @@ public class WindowPresenter {
                 }
             });
 
+            // Make 3D canvas resize with window
             subScene.widthProperty().bind(controller.getVisualizationPane().widthProperty());
             subScene.heightProperty().bind(controller.getVisualizationPane().heightProperty());
             controller.getVisualizationPane().getChildren().setAll(subScene);
 
+            // Enable mouse interaction
             interactionHandler = new SceneInteractionHandler(contentGroup, camera);
             interactionHandler.setupMouseInteraction(controller.getVisualizationPane());
         }
     }
 
-    // ==== Search Handlers (delegated to TreeSearchHandler) ====
+    // ==== Search functions (delegated to TreeSearchHandler) ====
 
     public void handleFind() {
         String query = controller.getSearchTextField().getText();

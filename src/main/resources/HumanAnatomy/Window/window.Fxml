@@ -10,6 +10,9 @@
 <?import javafx.scene.control.ToolBar?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.Tab?>
+
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
@@ -64,13 +67,23 @@
                                     <Button fx:id="allButton" onAction="#handleAll" text="All" />
                                     <Label fx:id="searchStatusLabel" text="" />
                                 </ToolBar>
-                                <ToolBar>
+                               <!-- <ToolBar>
                                     <Button fx:id="isAButton" onAction="#handleIsA" text="Is-A" />
                                     <Button fx:id="partOfButton" onAction="#handlePartOf" text="Part-Of" />
-                                </ToolBar>
+                                </ToolBar>-->
 
                                 <!-- TreeView - expandable -->
-                                <TreeView fx:id="treeView" VBox.vgrow="ALWAYS" />
+                               <!-- <TreeView fx:id="treeView" VBox.vgrow="ALWAYS" />   -->
+                                <TabPane fx:id="treeTabPane" VBox.vgrow="ALWAYS">
+                                    <tabs>
+                                        <Tab text="Part-Of" closable="false">
+                                            <TreeView fx:id="partOfTreeView" />
+                                        </Tab>
+                                        <Tab text="Is-A" closable="false">
+                                            <TreeView fx:id="isATreeView" />
+                                        </Tab>
+                                    </tabs>
+                                </TabPane>
 
                                 <!-- Bottom Toolbar -->
                                 <ToolBar>
