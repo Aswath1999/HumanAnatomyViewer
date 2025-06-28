@@ -168,7 +168,7 @@ public class ModelInterface {
     /**
      * Updates the TreeView selection to match currently selected file IDs.
      */
-    private void syncTreeSelectionFromFileIds() {
+    public void syncTreeSelectionFromFileIds() {
         MultipleSelectionModel<TreeItem<ANode>> model = treeView.getSelectionModel();
         inSelectionUpdate = true;
         model.clearSelection();
@@ -327,4 +327,31 @@ public class ModelInterface {
     }
 
 
+    public void hideAllModels() {
+        innerGroup.getChildren().clear();
+        innerGroup.getTransforms().clear();
+        selectedFileIds.clear(); // reset previous selection too
+    }
+
+
+
+    public List<TreeItem<ANode>> getCurrentlyVisibleTreeItems() {
+        List<TreeItem<ANode>> result = new ArrayList<>();
+        traverseTree(treeView.getRoot(), result);
+        return result;
+    }
+
+    private void traverseTree(TreeItem<ANode> item, List<TreeItem<ANode>> result) {
+        if (item.getValue() != null) {
+            for (String fileId : item.getValue().fileIds()) {
+                if (innerGroup.getChildren().contains(loadedModels.get(fileId))) {
+                    result.add(item);
+                    break;
+                }
+            }
+        }
+        for (TreeItem<ANode> child : item.getChildren()) {
+            traverseTree(child, result);
+        }
+    }
 }

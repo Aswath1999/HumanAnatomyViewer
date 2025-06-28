@@ -125,34 +125,41 @@ public class WindowPresenter {
                 controller.getActiveTreeView().getSelectionModel().clearSelection());
 
         controller.getShowButton().setOnAction(e -> {
+
             List<TreeItem<ANode>> selected = new ArrayList<>(controller.getActiveTreeView().getSelectionModel().getSelectedItems());
-
-            undoRedoManager.add(new SimpleCommand("Show Anatomy",
-                    () -> modelInterface.hideModels(selected),
-                    () -> {
-                        modelInterface.showModels(selected);
-
-                        // Now perform scene updates
-                        Platform.runLater(() -> {
-                            modelInterface.getInnerGroup().applyCss();
-                            modelInterface.getInnerGroup().layout();
-                            centerContentGroup();
-                            autoAdjustCamera();
-                        });
-
-                        setup3DScene(); // If necessary
-                    }
-            ));
-
-            // Immediate visual updates when pressing Show
-            modelInterface.showModels(selected);
+            List<TreeItem<ANode>> previouslyVisible = modelInterface.getCurrentlyVisibleTreeItems();
+            // Select shown models in tree view
             Platform.runLater(() -> {
+                modelInterface.syncTreeSelectionFromFileIds();
                 modelInterface.getInnerGroup().applyCss();
                 modelInterface.getInnerGroup().layout();
                 centerContentGroup();
                 autoAdjustCamera();
             });
+
             setup3DScene();
+
+            // Register undo/redo command
+            undoRedoManager.add(new SimpleCommand("Show Anatomy",
+                    () -> {
+                        modelInterface.hideAllModels();
+                        modelInterface.showModels(previouslyVisible);
+                        Platform.runLater(() -> {
+                            modelInterface.syncTreeSelectionFromFileIds();
+                            centerContentGroup();
+                            autoAdjustCamera();
+                        });
+                    },
+                    () -> {
+                        modelInterface.hideAllModels();
+                        modelInterface.showModels(selected);
+                        Platform.runLater(() -> {
+                            modelInterface.syncTreeSelectionFromFileIds();
+                            centerContentGroup();
+                            autoAdjustCamera();
+                        });
+                    }
+            ));
         });
         controller.getHideButton().setOnAction(e -> {
             List<TreeItem<ANode>> selected = new ArrayList<>(controller.getActiveTreeView().getSelectionModel().getSelectedItems());
