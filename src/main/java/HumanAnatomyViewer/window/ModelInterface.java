@@ -82,6 +82,7 @@ public class ModelInterface {
         applyDrawModeBasedOnSelection();
     }
 
+
     /**
      * Hides (removes) models associated with selected tree nodes from the display.
      * @param selectedItems List of selected TreeView nodes
@@ -307,4 +308,23 @@ public class ModelInterface {
     public Group getInnerGroup() {
         return innerGroup;
     }
+
+
+    public void showModels(List<TreeItem<ANode>> selectedItems) {
+        for (TreeItem<ANode> item : selectedItems) {
+            ANode node = item.getValue();
+            if (node == null) continue;
+
+            for (String fileId : node.fileIds()) {
+                Group modelGroup = loadModelIfAbsent(fileId);
+                if (modelGroup != null && !innerGroup.getChildren().contains(modelGroup)) {
+                    applyClickHandler(modelGroup, fileId);
+                    innerGroup.getChildren().add(modelGroup);
+                }
+            }
+        }
+        applyDrawModeBasedOnSelection();
+    }
+
+
 }

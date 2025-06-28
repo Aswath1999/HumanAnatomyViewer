@@ -124,12 +124,47 @@ public class WindowPresenter {
         controller.getDeselectButton().setOnAction(e ->
                 controller.getActiveTreeView().getSelectionModel().clearSelection());
 
-        controller.getShowButton().setOnAction(e -> handleShow());
-        controller.getHideButton().setOnAction(e ->
-                modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));
+        controller.getShowButton().setOnAction(e -> {
+            List<TreeItem<ANode>> selected = new ArrayList<>(controller.getActiveTreeView().getSelectionModel().getSelectedItems());
 
-       /* controller.getColorPicker().setOnAction(e ->
-                modelInterface.applyColorToSelected(controller.getColorPicker().getValue()));*/
+            undoRedoManager.add(new SimpleCommand("Show Anatomy",
+                    () -> modelInterface.hideModels(selected),
+                    () -> {
+                        modelInterface.showModels(selected);
+
+                        // Now perform scene updates
+                        Platform.runLater(() -> {
+                            modelInterface.getInnerGroup().applyCss();
+                            modelInterface.getInnerGroup().layout();
+                            centerContentGroup();
+                            autoAdjustCamera();
+                        });
+
+                        setup3DScene(); // If necessary
+                    }
+            ));
+
+            // Immediate visual updates when pressing Show
+            modelInterface.showModels(selected);
+            Platform.runLater(() -> {
+                modelInterface.getInnerGroup().applyCss();
+                modelInterface.getInnerGroup().layout();
+                centerContentGroup();
+                autoAdjustCamera();
+            });
+            setup3DScene();
+        });
+        controller.getHideButton().setOnAction(e -> {
+            List<TreeItem<ANode>> selected = new ArrayList<>(controller.getActiveTreeView().getSelectionModel().getSelectedItems());
+            // Immediately hide selected models
+            modelInterface.hideModels(selected);
+            undoRedoManager.add(new SimpleCommand("Show Anatomy",
+                    () -> modelInterface.hideModels(selected),     // Undo: hide them again
+                    () -> modelInterface.showModels(selected)      // Redo: only show those again
+            ));
+        });
+
+
 
         controller.getColorPicker().setOnAction(e -> {
             Color newColor = controller.getColorPicker().getValue();
@@ -150,6 +185,9 @@ public class WindowPresenter {
 
         controller.getUndoButton().setOnAction(e -> undoRedoManager.undo());
         controller.getRedoButton().setOnAction(e -> undoRedoManager.redo());
+
+        controller.getUndoButton().disableProperty().bind(undoRedoManager.canUndoProperty().not());
+        controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
     }
 
     // === Tree Expand/Collapse/Selection ===
