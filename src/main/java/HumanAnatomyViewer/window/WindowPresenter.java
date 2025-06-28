@@ -40,6 +40,10 @@ public class WindowPresenter {
     private ModelInterface modelInterface;                // Loads, displays, and styles 3D models
     private TreeSearchHandler searchHandler;              // Manages searching within the TreeView
 
+
+
+    private final UndoRedoManager undoRedoManager = new UndoRedoManager();   //undo redo functionality
+
     /**
      * Constructor sets up all GUI components and logic connections.
      * @param stage JavaFX stage (window)
@@ -124,8 +128,18 @@ public class WindowPresenter {
         controller.getHideButton().setOnAction(e ->
                 modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));
 
-        controller.getColorPicker().setOnAction(e ->
-                modelInterface.applyColorToSelected(controller.getColorPicker().getValue()));
+       /* controller.getColorPicker().setOnAction(e ->
+                modelInterface.applyColorToSelected(controller.getColorPicker().getValue()));*/
+
+        controller.getColorPicker().setOnAction(e -> {
+            Color newColor = controller.getColorPicker().getValue();
+            Color oldColor = modelInterface.getFirstSelectedColor(); // use new method
+
+            undoRedoManager.add(new SimpleCommand("Color Change",
+                    () -> modelInterface.applyColorToSelected(oldColor),
+                    () -> modelInterface.applyColorToSelected(newColor)
+            ));
+        });
 
         controller.getFindButton().setOnAction(e -> handleFind());
         controller.getFirstButton().setOnAction(e -> handleFirst());
@@ -133,6 +147,9 @@ public class WindowPresenter {
         controller.getAllButton().setOnAction(e -> handleAll());
 
         controller.getSearchTextField().setOnAction(e -> handleFind());
+
+        controller.getUndoButton().setOnAction(e -> undoRedoManager.undo());
+        controller.getRedoButton().setOnAction(e -> undoRedoManager.redo());
     }
 
     // === Tree Expand/Collapse/Selection ===

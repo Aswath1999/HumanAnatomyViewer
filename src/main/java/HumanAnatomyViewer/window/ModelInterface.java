@@ -273,6 +273,23 @@ public class ModelInterface {
         }
     }
 
+
+    public Color getFirstSelectedColor() {
+        for (String fileId : selectedFileIds) {
+            Group group = loadedModels.get(fileId);
+            if (group != null) {
+                for (var node : group.getChildren()) {
+                    if (node instanceof Shape3D shape && shape.getDrawMode() == DrawMode.FILL) {
+                        if (shape.getMaterial() instanceof PhongMaterial phong) {
+                            return phong.getDiffuseColor();
+                        }
+                    }
+                }
+            }
+        }
+        return Color.GRAY; // default fallback if none found
+    }
+
     // === GETTERS ===
 
     public Set<String> getSelectedFileIds() {
