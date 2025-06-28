@@ -31,6 +31,15 @@ public class WindowController {
     // === Root layout for fallback access ===
     @FXML private AnchorPane rootPane;
 
+
+    @FXML
+    private Button undoButton;
+
+    @FXML
+    private Button redoButton;
+
+
+
     private WindowPresenter presenter;
 
     public void initializePresenter(WindowPresenter presenter) {
@@ -50,6 +59,11 @@ public class WindowController {
     @FXML private void handleDeselect() {}
     @FXML private void handleShow() {}
     @FXML private void handleHide() {}
+    @FXML
+    private void handleUndo() {}
+
+    @FXML
+    private void handleRedo() {}
 
     // === Getters for presenter ===
     public Button getExpandButton() { return expandButton; }
@@ -74,6 +88,14 @@ public class WindowController {
     public TreeView<ANode> getIsATreeView() { return isATreeView; }
 
     public TabPane getTreeTabPane() { return treeTabPane; }
+
+    public Button getUndoButton() {
+        return undoButton;
+    }
+
+    public Button getRedoButton() {
+        return redoButton;
+    }
 
     /**
      * Returns the currently visible/active tree view based on selected tab.

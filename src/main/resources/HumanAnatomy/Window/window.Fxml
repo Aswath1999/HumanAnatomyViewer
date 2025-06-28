@@ -102,6 +102,8 @@
                                     <Button fx:id="showButton" onAction="#handleShow" text="Show" />
                                     <Button fx:id="hideButton" onAction="#handleHide" text="Hide" />
                                     <ColorPicker fx:id="colorPicker" />
+                                    <Button fx:id="undoButton" text="Undo" onAction="#handleUndo"/>
+                                    <Button fx:id="redoButton" text="Redo" onAction="#handleRedo"/>
                                 </ToolBar>
 
                                 <!-- Visualization Pane - expandable -->
