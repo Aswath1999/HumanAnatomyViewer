@@ -3,6 +3,8 @@ package HumanAnatomyViewer.window;
 import HumanAnatomyViewer.model.ANode;
 import HumanAnatomyViewer.model.Model;
 import javafx.animation.Interpolator;
+import javafx.animation.ParallelTransition;
+import javafx.animation.SequentialTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
@@ -17,6 +19,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.util.*;
+import javafx.animation.PauseTransition;
 import java.util.stream.Collectors;
 
 /**
@@ -259,17 +262,16 @@ public class WindowPresenter {
             if (!isExploded) {
                 originalPositions.clear();
 
-                for (Node node : modelInterface.getInnerGroup().getChildren()) {
-                    // Store the current position so we can reverse the animation
-                    originalPositions.put(node, new Point3D(
-                            node.getTranslateX(),
-                            node.getTranslateY(),
-                            node.getTranslateZ()
-                    ));
+                List<TranslateTransition> explodeAnimations = new ArrayList<>();
+                List<TranslateTransition> assembleAnimations = new ArrayList<>();
 
-                    // Compute random scatter
-                    double offsetX = Math.random() * 300 - 150;  // Range: -150 to +150
-                    double offsetY = 200;                        // Fall down vertically
+                for (Node node : modelInterface.getInnerGroup().getChildren()) {
+                    Point3D original = new Point3D(node.getTranslateX(), node.getTranslateY(), node.getTranslateZ());
+                    originalPositions.put(node, original);
+
+                    // === EXPLODE Animation ===
+                    double offsetX = Math.random() * 300 - 150;
+                    double offsetY = 200;
                     double offsetZ = Math.random() * 300 - 150;
 
                     TranslateTransition explode = new TranslateTransition(Duration.seconds(1.5), node);
@@ -277,10 +279,33 @@ public class WindowPresenter {
                     explode.setByY(offsetY);
                     explode.setByZ(offsetZ);
                     explode.setInterpolator(Interpolator.EASE_OUT);
-                    explode.play();
+                    explodeAnimations.add(explode);
+
+                    // === ASSEMBLE Animation ===
+                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
+                    assemble.setToX(original.getX());
+                    assemble.setToY(original.getY());
+                    assemble.setToZ(original.getZ());
+                    assemble.setInterpolator(Interpolator.EASE_BOTH);
+                    assembleAnimations.add(assemble);
                 }
 
+                // === Pause between explode and assemble ===
+                PauseTransition pause = new PauseTransition(Duration.seconds(2));
+
+                // === Chain: Explode → Pause → Assemble ===
+                ParallelTransition explodeAll = new ParallelTransition();
+                explodeAll.getChildren().addAll(explodeAnimations);
+
+                ParallelTransition assembleAll = new ParallelTransition();
+                assembleAll.getChildren().addAll(assembleAnimations);
+
+                SequentialTransition sequence = new SequentialTransition(explodeAll, pause, assembleAll);
+                sequence.setOnFinished(event -> isExploded = false); // Reset flag after assemble
+                sequence.play();
+
             } else {
+                // If user presses button again while exploded (manual assemble)
                 for (Node node : modelInterface.getInnerGroup().getChildren()) {
                     Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
 
@@ -291,11 +316,10 @@ public class WindowPresenter {
                     assemble.setInterpolator(Interpolator.EASE_BOTH);
                     assemble.play();
                 }
+
+                isExploded = false;
             }
-
-            isExploded = !isExploded;
         });
-
 
     }
 
