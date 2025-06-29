@@ -257,7 +257,7 @@ public class WindowPresenter {
 
         controller.getUndoButton().disableProperty().bind(undoRedoManager.canUndoProperty().not());
         controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
-        controller.getExplodeButton().setOnAction(e -> {
+       /* controller.getExplodeButton().setOnAction(e -> {
             if (!isExploded) {
                 originalPositions.clear();
 
@@ -294,7 +294,7 @@ public class WindowPresenter {
                     // === 4. Create Explode Animation ===
                     TranslateTransition explode = new TranslateTransition(Duration.seconds(1.5), node);
                     explode.setByX(offset.getX());
-                    explode.setByY(offset.getY());
+         *//*           explode.setByY(offset.getY());*//*
                     explode.setByZ(offset.getZ());
                     explode.setInterpolator(Interpolator.EASE_OUT);
                     explodeAnimations.add(explode);
@@ -302,7 +302,7 @@ public class WindowPresenter {
                     // === 5. Create Assemble Animation ===
                     TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
                     assemble.setToX(original.getX());
-                    assemble.setToY(original.getY());
+         *//*           assemble.setToY(original.getY());*//*
                     assemble.setToZ(original.getZ());
                     assemble.setInterpolator(Interpolator.EASE_BOTH);
                     assembleAnimations.add(assemble);
@@ -328,6 +328,84 @@ public class WindowPresenter {
                     Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
 
                     TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
+                    assemble.setToX(original.getX());
+         *//*           assemble.setToY(original.getY());*//*
+                    assemble.setToZ(original.getZ());
+                    assemble.setInterpolator(Interpolator.EASE_BOTH);
+                    assemble.play();
+                }
+
+                isExploded = false;
+            }
+        });*/
+        controller.getExplodeButton().setOnAction(e -> {
+            if (!isExploded) {
+                originalPositions.clear();
+
+                List<TranslateTransition> explodeAnimations = new ArrayList<>();
+                List<TranslateTransition> assembleAnimations = new ArrayList<>();
+
+                Bounds bounds = modelInterface.getInnerGroup().getLayoutBounds();
+                Point3D globalCenter = new Point3D(
+                        (bounds.getMinX() + bounds.getMaxX()) / 2,
+                        (bounds.getMinY() + bounds.getMaxY()) / 2,
+                        (bounds.getMinZ() + bounds.getMaxZ()) / 2
+                );
+
+                double explodeFactor = 1.5;
+
+                for (Node node : modelInterface.getInnerGroup().getChildren()) {
+                    Point3D original = new Point3D(node.getTranslateX(), node.getTranslateY(), node.getTranslateZ());
+                    originalPositions.put(node, original);
+
+                    Bounds nodeBounds = node.getBoundsInParent();
+                    Point3D nodeCenter = new Point3D(
+                            (nodeBounds.getMinX() + nodeBounds.getMaxX()) / 2,
+                            (nodeBounds.getMinY() + nodeBounds.getMaxY()) / 2,
+                            (nodeBounds.getMinZ() + nodeBounds.getMaxZ()) / 2
+                    );
+
+                    Point3D direction = nodeCenter.subtract(globalCenter);
+                    if (direction.magnitude() == 0) {
+                        direction = new Point3D(Math.random(), Math.random(), Math.random()); // avoid zero vector
+                    }
+                    direction = direction.normalize();
+
+                    Point3D offset = direction.multiply(explodeFactor * 100); // 100 is an arbitrary base offset
+
+                    TranslateTransition explode = new TranslateTransition(Duration.seconds(1.2), node);
+                    explode.setByX(offset.getX());
+                    explode.setByY(offset.getY());
+                    explode.setByZ(offset.getZ());
+                    explode.setInterpolator(Interpolator.EASE_OUT);
+                    explodeAnimations.add(explode);
+
+                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.2), node);
+                    assemble.setToX(original.getX());
+                    assemble.setToY(original.getY());
+                    assemble.setToZ(original.getZ());
+                    assemble.setInterpolator(Interpolator.EASE_BOTH);
+                    assembleAnimations.add(assemble);
+                }
+
+                PauseTransition pause = new PauseTransition(Duration.seconds(1.5));
+
+                ParallelTransition explodeAll = new ParallelTransition();
+                explodeAll.getChildren().addAll(explodeAnimations);
+
+                ParallelTransition assembleAll = new ParallelTransition();
+                assembleAll.getChildren().addAll(assembleAnimations);
+
+                SequentialTransition sequence = new SequentialTransition(explodeAll, pause, assembleAll);
+                sequence.setOnFinished(event -> isExploded = false);
+                sequence.play();
+                isExploded = true;
+
+            } else {
+                for (Node node : modelInterface.getInnerGroup().getChildren()) {
+                    Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
+
+                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.2), node);
                     assemble.setToX(original.getX());
                     assemble.setToY(original.getY());
                     assemble.setToZ(original.getZ());

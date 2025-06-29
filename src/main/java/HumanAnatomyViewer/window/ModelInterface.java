@@ -30,6 +30,7 @@ public class ModelInterface {
     // Parent container for all 3D models in the JavaFX scene
     private final Group innerGroup;
 
+
     // The TreeView that displays the anatomical hierarchy
     private final TreeView<ANode> treeView;
 
@@ -41,6 +42,12 @@ public class ModelInterface {
 
     // Prevents feedback loops during programmatic selection updates
     private boolean inSelectionUpdate = false;
+
+    // Add wrapper group field
+
+
+
+
 
     /**
      * Constructor for ModelInterface.
