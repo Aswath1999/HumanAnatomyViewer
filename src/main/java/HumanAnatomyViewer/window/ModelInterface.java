@@ -130,6 +130,7 @@ public class ModelInterface {
     }
 
 
+
     public Set<String> getCurrentlyVisibleFileIds() {
         Set<String> ids = innerGroup.getChildren().stream()
                 .map(Node::getUserData)
