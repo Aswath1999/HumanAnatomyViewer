@@ -91,8 +91,7 @@ public class ModelInterface {
     }
 
     public void loadAndDisplayModelsByFileIds(Collection<String> fileIds) {
-        System.out.println("=== Loading Models by File IDs ===");
-        System.out.println("Requested fileIds to load: " + fileIds);
+
 
         // Step 1: Clear previous display
         innerGroup.getChildren().clear();
@@ -106,7 +105,7 @@ public class ModelInterface {
 
         // Step 3: Load and display each model
         for (String fileId : fileIds) {
-            System.out.println("Loading model for fileId: " + fileId);
+
 
             Group modelGroup = loadModelIfAbsent(fileId);
             if (modelGroup != null) {
@@ -118,7 +117,8 @@ public class ModelInterface {
 
                 applyClickHandler(modelGroup, fileId);
                 innerGroup.getChildren().add(modelGroup);
-                System.out.println("Added model group to scene: " + fileId);
+                modelGroup.setUserData(fileId); // ✅ Attach file ID to top-level group
+
             } else {
                 System.out.println("❌ Could not load model: " + fileId);
             }
@@ -131,13 +131,14 @@ public class ModelInterface {
 
 
     public Set<String> getCurrentlyVisibleFileIds() {
-        return innerGroup.getChildren().stream()
+        Set<String> ids = innerGroup.getChildren().stream()
                 .map(Node::getUserData)
                 .filter(Objects::nonNull)
                 .map(Object::toString)
                 .collect(Collectors.toSet());
+        System.out.println("Visible File IDs: " + ids);
+        return ids;
     }
-
 
     /**
      * Hides (removes) models associated with selected tree nodes from the display.

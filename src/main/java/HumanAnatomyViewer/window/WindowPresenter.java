@@ -130,6 +130,9 @@ public class WindowPresenter {
         /*controller.getHideButton().setOnAction(e ->
                 modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));*/
         controller.getShowButton().setOnAction(e -> {
+            // ⛔ Important: capture current visible state BEFORE changing it!
+            Set<String> beforeVisible = new HashSet<>(modelInterface.getCurrentlyVisibleFileIds());
+            System.out.println("Undo: Showing previous model IDs: " + beforeVisible);
             // Capture selected TreeItems
             List<TreeItem<ANode>> selectedItems = new ArrayList<>(
                     controller.getActiveTreeView().getSelectionModel().getSelectedItems());
@@ -141,9 +144,7 @@ public class WindowPresenter {
                     .flatMap(anode -> anode.fileIds().stream())
                     .collect(Collectors.toSet());
 
-            // ⛔ Important: capture current visible state BEFORE changing it!
-            Set<String> beforeVisible = new HashSet<>(modelInterface.getCurrentlyVisibleFileIds());
-            System.out.println("Undo: Showing previous model IDs: " + beforeVisible);
+
 
 
             // === Add Undo/Redo Command ===
