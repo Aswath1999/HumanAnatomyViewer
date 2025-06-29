@@ -13,6 +13,7 @@ import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * WindowPresenter handles the main logic and interaction for the application window.
@@ -43,6 +44,7 @@ public class WindowPresenter {
 
 
     private final UndoRedoManager undoRedoManager = new UndoRedoManager();   //undo redo functionality
+    private SubScene subScene; // make this a field
 
     /**
      * Constructor sets up all GUI components and logic connections.
@@ -124,17 +126,93 @@ public class WindowPresenter {
         controller.getDeselectButton().setOnAction(e ->
                 controller.getActiveTreeView().getSelectionModel().clearSelection());
 
-        controller.getShowButton().setOnAction(e -> handleShow());
+        /*controller.getShowButton().setOnAction(e -> handleShow());*/
         controller.getHideButton().setOnAction(e ->
                 modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));
+        controller.getShowButton().setOnAction(e -> {
+
+            List<TreeItem<ANode>> selectedItems = new ArrayList<>(
+                    controller.getActiveTreeView().getSelectionModel().getSelectedItems());
+
+
+            Set<String> showFileIds = new HashSet<>();
+            for (TreeItem<ANode> item : selectedItems) {
+                ANode node = item.getValue();
+                if (node != null) {
+                    showFileIds.addAll(node.fileIds());
+                }
+            }
+            Set<String> beforeFileIds = modelInterface.getCurrentlyVisibleFileIds();
+
+            // ✅ Add Undo/Redo Command
+            undoRedoManager.add(new SimpleCommand("Show Models",
+                    () -> modelInterface.hideModelsByFileIds(beforeFileIds),         // Undo: hide current
+                    () -> {
+                        modelInterface.loadAndDisplayModelsByFileIds(showFileIds);   // Redo: reload previous
+                        modelInterface.syncTreeSelectionFromFileIds();               // Redo: sync TreeView
+                        setup3DScene();                                              // Redo: ensure scene is set up
+                        Platform.runLater(() -> {
+                            innerGroup.applyCss();
+                            innerGroup.layout();
+                            centerContentGroup();
+                            autoAdjustCamera();
+                        });
+                    }
+            ));
+
+            // ✅ Perform the actual show operation (initial action)
+            modelInterface.loadAndDisplayModelsByFileIds(showFileIds);
+            modelInterface.syncTreeSelectionFromFileIds();
+            handleShow(); // Reuses your camera + layout logic
+        });
+
+
+      /*  controller.getHideButton().setOnAction(e -> {
+            List<TreeItem<ANode>> selected = new ArrayList<>(controller.getActiveTreeView().getSelectionModel().getSelectedItems());
+
+            Set<String> fileIds = new HashSet<>();
+            for (TreeItem<ANode> item : selected) {
+                if (item.getValue() != null) {
+                    fileIds.addAll(item.getValue().fileIds());
+                }
+            }
+
+            undoRedoManager.add(new SimpleCommand("Hide Models",
+                    () -> {
+                        modelInterface.loadAndDisplayModels(selected);
+                        setup3DScene();
+                        Platform.runLater(() -> {
+                            innerGroup.applyCss();
+                            innerGroup.layout();
+
+                            Platform.runLater(() -> {
+                                centerContentGroup();
+                                autoAdjustCamera();
+                            });
+                        });
+
+                    },
+                    () -> {
+                        modelInterface.hideModelsByFileIds(fileIds);
+                        hide3DScene(); // ✅ Hide the SubScene too
+                    }
+            ));
+
+            modelInterface.hideModels(selected);
+            hide3DScene(); // ✅ When user hides directly
+        });*/
+
 
         controller.getColorPicker().setOnAction(e -> {
             Color newColor = controller.getColorPicker().getValue();
             Color oldColor = modelInterface.getFirstSelectedColor(); // use new method
 
             undoRedoManager.add(new SimpleCommand("Color Change",
-                    () -> modelInterface.applyColorToSelected(oldColor),
-                    () -> modelInterface.applyColorToSelected(newColor)
+                    () -> {modelInterface.applyColorToSelected(oldColor);
+            controller.getColorPicker().setValue(oldColor);}, // Update UI;}
+                    () -> {modelInterface.applyColorToSelected(newColor);
+                controller.getColorPicker().setValue(newColor);
+            }
             ));
         });
 
@@ -204,7 +282,15 @@ public class WindowPresenter {
     }
 
     // === 3D Visualization Handling ===
-
+    private void refresh3DScene() {
+        setup3DScene();
+        Platform.runLater(() -> {
+            innerGroup.applyCss();
+            innerGroup.layout();
+            centerContentGroup();
+            autoAdjustCamera();
+        });
+    }
     /**
      * Handles showing selected models in the 3D scene.
      */
@@ -226,7 +312,8 @@ public class WindowPresenter {
      */
     private void centerContentGroup() {
         innerGroup.layout();
-        Bounds bounds = innerGroup.getBoundsInParent();
+        /*Bounds bounds = innerGroup.getBoundsInParent();*/
+        Bounds bounds = innerGroup.getLayoutBounds();
         double cx = (bounds.getMinX() + bounds.getMaxX()) / 2;
         double cy = (bounds.getMinY() + bounds.getMaxY()) / 2;
         double cz = (bounds.getMinZ() + bounds.getMaxZ()) / 2;
@@ -249,7 +336,7 @@ public class WindowPresenter {
     /**
      * Initializes the 3D scene including camera, lighting, and interaction.
      */
-    private void setup3DScene() {
+   /* private void setup3DScene() {
         if (root3D.getChildren().isEmpty()) {
             contentGroup.getChildren().add(innerGroup);
             root3D.getChildren().add(contentGroup);
@@ -297,6 +384,66 @@ public class WindowPresenter {
             interactionHandler = new SceneInteractionHandler(contentGroup, camera);
             interactionHandler.setupMouseInteraction(controller.getVisualizationPane());
         }
+    }*/
+
+    private void setup3DScene() {
+        if (subScene == null) {
+            if (!contentGroup.getChildren().contains(innerGroup)) {
+                contentGroup.getChildren().add(innerGroup);
+            }
+
+            if (!root3D.getChildren().contains(contentGroup)) {
+                root3D.getChildren().add(contentGroup);
+            }
+
+            // Add lights if not present
+            if (root3D.getChildren().stream().noneMatch(n -> n instanceof PointLight || n instanceof AmbientLight)) {
+                PointLight pointLight = new PointLight(Color.WHITE);
+                pointLight.setTranslateX(-500);
+                pointLight.setTranslateY(-500);
+                pointLight.setTranslateZ(-500);
+
+                AmbientLight ambientLight = new AmbientLight(Color.DARKGRAY);
+                root3D.getChildren().addAll(pointLight, ambientLight);
+            }
+
+            // Camera setup
+            camera.setNearClip(0.1);
+            camera.setFarClip(10000);
+            camera.setTranslateZ(-500);
+
+            // Create and configure the SubScene
+            subScene = new SubScene(root3D, 600, 600, true, SceneAntialiasing.BALANCED);
+            subScene.setCamera(camera);
+            subScene.setFill(Color.LIGHTGRAY);
+            subScene.setOnMouseClicked(e -> subScene.requestFocus());
+
+            subScene.setOnKeyPressed(e -> {
+                KeyCode code = e.getCode();
+                switch (code) {
+                    case Z -> interactionHandler.resetTransform();
+                    case I -> interactionHandler.zoom(50);
+                    case O -> interactionHandler.zoom(-50);
+                    case LEFT -> interactionHandler.rotateY(-10);
+                    case RIGHT -> interactionHandler.rotateY(10);
+                    case UP -> interactionHandler.rotateX(-10);
+                    case DOWN -> interactionHandler.rotateX(10);
+                }
+            });
+
+            subScene.widthProperty().bind(controller.getVisualizationPane().widthProperty());
+            subScene.heightProperty().bind(controller.getVisualizationPane().heightProperty());
+
+            controller.getVisualizationPane().getChildren().setAll(subScene);
+
+            interactionHandler = new SceneInteractionHandler(contentGroup, camera);
+            interactionHandler.setupMouseInteraction(controller.getVisualizationPane());
+        }
+    }
+
+    private void hide3DScene() {
+        controller.getVisualizationPane().getChildren().clear();
+        subScene = null; // Reset so it can be rebuilt later
     }
 
     // === Search Delegates ===
@@ -322,16 +469,5 @@ public class WindowPresenter {
     }
 
 
-    private void runLayoutAndCameraUpdate() {
-        Platform.runLater(() -> {
-            innerGroup.applyCss();
-            innerGroup.layout();
 
-            // Ensure layout bounds are updated before adjusting camera
-            Platform.runLater(() -> {
-                centerContentGroup();
-                autoAdjustCamera();
-            });
-        });
-    }
 }

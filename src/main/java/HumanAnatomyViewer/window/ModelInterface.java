@@ -77,9 +77,67 @@ public class ModelInterface {
                 }
             }
         }
-
+        selectedFileIds.clear();
+        selectedFileIds.addAll(selectedItems.stream()
+                .filter(Objects::nonNull)
+                .map(TreeItem::getValue)
+                .filter(Objects::nonNull)
+                .flatMap(anode -> anode.fileIds().stream())
+                .toList());
         // Visually indicate selection with draw mode changes
         applyDrawModeBasedOnSelection();
+    }
+
+    public void loadAndDisplayModelsByFileIds(Collection<String> fileIds) {
+        System.out.println("=== Loading Models by File IDs ===");
+        System.out.println("Requested fileIds to load: " + fileIds);
+
+        // Step 1: Clear previous display
+        innerGroup.getChildren().clear();
+        innerGroup.getTransforms().clear();
+        System.out.println("Cleared innerGroup and reset transforms.");
+
+        // Step 2: Update selected file IDs
+        selectedFileIds.clear();
+        selectedFileIds.addAll(fileIds);
+        System.out.println("Updated selectedFileIds: " + selectedFileIds);
+
+        // Step 3: Load and display each model
+        for (String fileId : fileIds) {
+            System.out.println("Loading model for fileId: " + fileId);
+
+            Group modelGroup = loadModelIfAbsent(fileId);
+            if (modelGroup != null) {
+                // Remove just in case it was already in (paranoia check)
+                if (innerGroup.getChildren().contains(modelGroup)) {
+                    System.out.println("Model group already present — removing before re-adding: " + fileId);
+                    innerGroup.getChildren().remove(modelGroup);
+                }
+
+                applyClickHandler(modelGroup, fileId);
+                innerGroup.getChildren().add(modelGroup);
+                System.out.println("Added model group to scene: " + fileId);
+            } else {
+                System.out.println("❌ Could not load model: " + fileId);
+            }
+        }
+
+        // Step 4: Apply visual highlighting
+        applyDrawModeBasedOnSelection();
+        System.out.println("Applied draw modes based on selection.");
+        System.out.println("=== Model loading completed ===\n");
+    }
+
+
+    public Set<String> getCurrentlyVisibleFileIds() {
+        Set<String> visible = new HashSet<>();
+        for (var node : innerGroup.getChildren()) {
+            Object data = node.getUserData();
+            if (data instanceof String fileId) {
+                visible.add(fileId);
+            }
+        }
+        return visible;
     }
 
 
@@ -310,48 +368,10 @@ public class ModelInterface {
     }
 
 
-    public void showModels(List<TreeItem<ANode>> selectedItems) {
-        for (TreeItem<ANode> item : selectedItems) {
-            ANode node = item.getValue();
-            if (node == null) continue;
-
-            for (String fileId : node.fileIds()) {
-                Group modelGroup = loadModelIfAbsent(fileId);
-                if (modelGroup != null && !innerGroup.getChildren().contains(modelGroup)) {
-                    applyClickHandler(modelGroup, fileId);
-                    innerGroup.getChildren().add(modelGroup);
-                }
-            }
-        }
-        applyDrawModeBasedOnSelection();
-    }
-
-
-    public void hideAllModels() {
-        innerGroup.getChildren().clear();
-        innerGroup.getTransforms().clear();
-        selectedFileIds.clear(); // reset previous selection too
-    }
-
-
-
-    public List<TreeItem<ANode>> getCurrentlyVisibleTreeItems() {
-        List<TreeItem<ANode>> result = new ArrayList<>();
-        traverseTree(treeView.getRoot(), result);
-        return result;
-    }
-
-    private void traverseTree(TreeItem<ANode> item, List<TreeItem<ANode>> result) {
-        if (item.getValue() != null) {
-            for (String fileId : item.getValue().fileIds()) {
-                if (innerGroup.getChildren().contains(loadedModels.get(fileId))) {
-                    result.add(item);
-                    break;
-                }
-            }
-        }
-        for (TreeItem<ANode> child : item.getChildren()) {
-            traverseTree(child, result);
+    public void hideModelsByFileIds(Collection<String> fileIds) {
+        for (String fileId : fileIds) {
+            innerGroup.getChildren().remove(loadedModels.get(fileId));
         }
     }
+
 }

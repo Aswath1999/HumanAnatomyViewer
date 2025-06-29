@@ -99,8 +99,8 @@
                         <children>
                             <VBox spacing="5.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                                 <ToolBar>
-                                    <Button fx:id="showButton" onAction="#handleShow" text="Show" />
-                                    <Button fx:id="hideButton" onAction="#handleHide" text="Hide" />
+                                    <Button fx:id="showButton"  text="Show" />
+                                    <Button fx:id="hideButton"  text="Hide" />
                                     <ColorPicker fx:id="colorPicker" />
                                     <Button fx:id="undoButton" text="Undo" onAction="#handleUndo"/>
                                     <Button fx:id="redoButton" text="Redo" onAction="#handleRedo"/>
