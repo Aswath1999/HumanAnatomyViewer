@@ -51,7 +51,7 @@ public class WindowPresenter {
     private SubScene subScene; // make this a field
 
     private boolean isExploded = false;
-    private final Map<Node, TranslateTransition> activeExplosions = new HashMap<>();
+    private final Map<Node, Point3D> originalPositions = new HashMap<>();
 
     /**
      * Constructor sets up all GUI components and logic connections.
@@ -256,11 +256,43 @@ public class WindowPresenter {
         controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
 
         controller.getExplodeButton().setOnAction(e -> {
-            if (isExploded) {
-                assembleModels();  // Move parts back to original positions
+            if (!isExploded) {
+                originalPositions.clear();
+
+                for (Node node : modelInterface.getInnerGroup().getChildren()) {
+                    // Store the current position so we can reverse the animation
+                    originalPositions.put(node, new Point3D(
+                            node.getTranslateX(),
+                            node.getTranslateY(),
+                            node.getTranslateZ()
+                    ));
+
+                    // Compute random scatter
+                    double offsetX = Math.random() * 300 - 150;  // Range: -150 to +150
+                    double offsetY = 200;                        // Fall down vertically
+                    double offsetZ = Math.random() * 300 - 150;
+
+                    TranslateTransition explode = new TranslateTransition(Duration.seconds(1.5), node);
+                    explode.setByX(offsetX);
+                    explode.setByY(offsetY);
+                    explode.setByZ(offsetZ);
+                    explode.setInterpolator(Interpolator.EASE_OUT);
+                    explode.play();
+                }
+
             } else {
-                explodeModels();   // Push parts outward from center
+                for (Node node : modelInterface.getInnerGroup().getChildren()) {
+                    Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
+
+                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
+                    assemble.setToX(original.getX());
+                    assemble.setToY(original.getY());
+                    assemble.setToZ(original.getZ());
+                    assemble.setInterpolator(Interpolator.EASE_BOTH);
+                    assemble.play();
+                }
             }
+
             isExploded = !isExploded;
         });
 
@@ -466,48 +498,6 @@ public class WindowPresenter {
         });
     }
 
-
-    private void explodeModels() {
-        Point3D center = getGroupCenter(innerGroup);
-
-        for (Node node : innerGroup.getChildren()) {
-            Bounds bounds = node.getBoundsInParent();
-            Point3D partCenter = new Point3D(
-                    (bounds.getMinX() + bounds.getMaxX()) / 2,
-                    (bounds.getMinY() + bounds.getMaxY()) / 2,
-                    (bounds.getMinZ() + bounds.getMaxZ()) / 2
-            );
-
-            Point3D direction = partCenter.subtract(center).normalize();
-            double distance = 150;  // explosion distance
-
-            TranslateTransition tt = new TranslateTransition(Duration.seconds(1.5), node);
-            tt.setToX(direction.getX() * distance);
-            tt.setToY(direction.getY() * distance);
-            tt.setToZ(direction.getZ() * distance);
-            tt.setInterpolator(Interpolator.EASE_OUT);
-            tt.play();
-
-            activeExplosions.put(node, tt);  // Track for reversal
-        }
-    }
-
-
-
-    private void assembleModels() {
-        for (Map.Entry<Node, TranslateTransition> entry : activeExplosions.entrySet()) {
-            Node node = entry.getKey();
-
-            TranslateTransition tt = new TranslateTransition(Duration.seconds(1.5), node);
-            tt.setToX(0);
-            tt.setToY(0);
-            tt.setToZ(0);
-            tt.setInterpolator(Interpolator.EASE_BOTH);
-            tt.play();
-        }
-
-        activeExplosions.clear();  // Clean up after animation
-    }
 
 
     private Point3D getGroupCenter(Group group) {
