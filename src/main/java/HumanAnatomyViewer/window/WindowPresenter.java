@@ -257,7 +257,88 @@ public class WindowPresenter {
 
         controller.getUndoButton().disableProperty().bind(undoRedoManager.canUndoProperty().not());
         controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
+        controller.getExplodeButton().setOnAction(e -> {
+            if (!isExploded) {
+                originalPositions.clear();
 
+                List<TranslateTransition> explodeAnimations = new ArrayList<>();
+                List<TranslateTransition> assembleAnimations = new ArrayList<>();
+
+                // === 1. Compute center of the whole model group ===
+                Bounds bounds = modelInterface.getInnerGroup().getBoundsInParent();
+                Point3D globalCenter = new Point3D(
+                        (bounds.getMinX() + bounds.getMaxX()) / 2,
+                        (bounds.getMinY() + bounds.getMaxY()) / 2,
+                        (bounds.getMinZ() + bounds.getMaxZ()) / 2
+                );
+
+                double explodeFactor = 1.5;  // 🔧 Adjust this to push parts further out
+
+                for (Node node : modelInterface.getInnerGroup().getChildren()) {
+                    // === 2. Save original position for assembly later ===
+                    Point3D original = new Point3D(node.getTranslateX(), node.getTranslateY(), node.getTranslateZ());
+                    originalPositions.put(node, original);
+
+                    // === 3. Calculate node center and explosion direction ===
+                    Bounds nodeBounds = node.getBoundsInParent();
+                    Point3D nodeCenter = new Point3D(
+                            (nodeBounds.getMinX() + nodeBounds.getMaxX()) / 2,
+                            (nodeBounds.getMinY() + nodeBounds.getMaxY()) / 2,
+                            (nodeBounds.getMinZ() + nodeBounds.getMaxZ()) / 2
+                    );
+
+                    Point3D direction = nodeCenter.subtract(globalCenter).normalize();
+                    double distance = nodeCenter.distance(globalCenter);
+                    Point3D offset = direction.multiply(distance * explodeFactor);
+
+                    // === 4. Create Explode Animation ===
+                    TranslateTransition explode = new TranslateTransition(Duration.seconds(1.5), node);
+                    explode.setByX(offset.getX());
+                    explode.setByY(offset.getY());
+                    explode.setByZ(offset.getZ());
+                    explode.setInterpolator(Interpolator.EASE_OUT);
+                    explodeAnimations.add(explode);
+
+                    // === 5. Create Assemble Animation ===
+                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
+                    assemble.setToX(original.getX());
+                    assemble.setToY(original.getY());
+                    assemble.setToZ(original.getZ());
+                    assemble.setInterpolator(Interpolator.EASE_BOTH);
+                    assembleAnimations.add(assemble);
+                }
+
+                // === 6. Create Pause Transition ===
+                PauseTransition pause = new PauseTransition(Duration.seconds(2));
+
+                // === 7. Chain Explode → Pause → Assemble ===
+                ParallelTransition explodeAll = new ParallelTransition();
+                explodeAll.getChildren().addAll(explodeAnimations);
+
+                ParallelTransition assembleAll = new ParallelTransition();
+                assembleAll.getChildren().addAll(assembleAnimations);
+
+                SequentialTransition sequence = new SequentialTransition(explodeAll, pause, assembleAll);
+                sequence.setOnFinished(event -> isExploded = false); // Reset flag after animation
+                sequence.play();
+
+            } else {
+                // === Manual Assembly when already exploded ===
+                for (Node node : modelInterface.getInnerGroup().getChildren()) {
+                    Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
+
+                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
+                    assemble.setToX(original.getX());
+                    assemble.setToY(original.getY());
+                    assemble.setToZ(original.getZ());
+                    assemble.setInterpolator(Interpolator.EASE_BOTH);
+                    assemble.play();
+                }
+
+                isExploded = false;
+            }
+        });
+/*
         controller.getExplodeButton().setOnAction(e -> {
             if (!isExploded) {
                 originalPositions.clear();
@@ -270,6 +351,7 @@ public class WindowPresenter {
                     originalPositions.put(node, original);
 
                     // === EXPLODE Animation ===
+
                     double offsetX = Math.random() * 300 - 150;
                     double offsetY = 200;
                     double offsetZ = Math.random() * 300 - 150;
@@ -320,6 +402,7 @@ public class WindowPresenter {
                 isExploded = false;
             }
         });
+*/
 
     }
 
@@ -375,15 +458,7 @@ public class WindowPresenter {
     }
 
     // === 3D Visualization Handling ===
-    private void refresh3DScene() {
-        setup3DScene();
-        Platform.runLater(() -> {
-            innerGroup.applyCss();
-            innerGroup.layout();
-            centerContentGroup();
-            autoAdjustCamera();
-        });
-    }
+
     /**
      * Handles showing selected models in the 3D scene.
      */
