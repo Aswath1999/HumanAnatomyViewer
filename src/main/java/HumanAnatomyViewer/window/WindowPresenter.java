@@ -209,15 +209,30 @@ public class WindowPresenter {
 
         controller.getColorPicker().setOnAction(e -> {
             Color newColor = controller.getColorPicker().getValue();
-            Color oldColor = modelInterface.getFirstSelectedColor(); // use new method
 
-            undoRedoManager.add(new SimpleCommand("Color Change",
-                    () -> {modelInterface.applyColorToSelected(oldColor);
-            controller.getColorPicker().setValue(oldColor);}, // Update UI;}
-                    () -> {modelInterface.applyColorToSelected(newColor);
-                controller.getColorPicker().setValue(newColor);
+            // Save old colors per fileId
+            Map<String, Color> oldColorMap = modelInterface.getCurrentColorsForSelected();
+
+            // Build new color map with same fileIds but new color
+            Map<String, Color> newColorMap = new HashMap<>();
+            for (String fileId : oldColorMap.keySet()) {
+                newColorMap.put(fileId, newColor);
             }
+
+            // Register Undo/Redo
+            undoRedoManager.add(new SimpleCommand("Color Change",
+                    () -> {
+                        modelInterface.applyColorsFromMap(oldColorMap);
+                        controller.getColorPicker().setValue(oldColorMap.values().stream().findFirst().orElse(Color.GRAY));
+                    },
+                    () -> {
+                        modelInterface.applyColorsFromMap(newColorMap);
+                        controller.getColorPicker().setValue(newColor);
+                    }
             ));
+
+            // Apply color now
+            modelInterface.applyColorsFromMap(newColorMap);
         });
 
         controller.getFindButton().setOnAction(e -> handleFind());

@@ -8,9 +8,14 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Transform;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.RotateTransition;
+import javafx.util.Duration;
+
 
 /**
- * SceneInteractionHandler enables mouse interaction (rotation, zoom, pan)
+ * SceneInteractionHandler enables mouse interaction (rotation, zoom, pan), animation rotation
  * for 3D content displayed in a JavaFX scene.
  */
 public class SceneInteractionHandler {
@@ -20,6 +25,9 @@ public class SceneInteractionHandler {
 
     private double xPrev, yPrev;                 // Tracks previous mouse coordinates for drag
     private Transform totalTransform = new Rotate(); // Stores the combined rotation transforms
+
+    private RotateTransition autoRotate;
+    private boolean isAutoRotating = false;
 
     /**
      * Constructor initializing the handler with the content group and camera.
@@ -36,6 +44,12 @@ public class SceneInteractionHandler {
         pane.setOnMousePressed(this::onMousePressed);  // Capture initial mouse press position
         pane.setOnMouseDragged(this::onMouseDragged);  // Rotate content on drag
         pane.setOnScroll(this::onScroll);              // Zoom or pan on scroll
+        // ⏩ Enable animation toggle with Shift + Ctrl + MouseClick
+        pane.setOnMouseClicked(event -> {
+            if (event.isShiftDown() && event.isControlDown()) {
+                toggleAutoRotation();
+            }
+        });
     }
 
     /**
@@ -160,5 +174,39 @@ public class SceneInteractionHandler {
         Rotate rotate = new Rotate(angle, pivot.getX(), pivot.getY(), pivot.getZ(), axis);
         totalTransform = rotate.createConcatenation(totalTransform);
         contentGroup.getTransforms().setAll(totalTransform);
+    }
+
+    /**
+     * 🔁 Toggles auto-rotation: starts or stops rotation animation.
+     * Triggered by Shift + Ctrl + MouseClick.
+     */
+    private void toggleAutoRotation() {
+        if (autoRotate == null) {
+            autoRotate = new RotateTransition(Duration.seconds(5), contentGroup);
+            autoRotate.setAxis(Rotate.Y_AXIS);
+            autoRotate.setByAngle(360);
+            autoRotate.setCycleCount(Animation.INDEFINITE);
+            autoRotate.setInterpolator(Interpolator.LINEAR);
+        }
+
+        if (isAutoRotating) {
+            autoRotate.stop();
+
+            // ✅ Extract current rotation from the animation
+            Rotate currentRotation = new Rotate();
+            currentRotation.setAxis(Rotate.Y_AXIS);
+            currentRotation.setAngle(contentGroup.getRotate());  // Get current angle
+
+            // ✅ Combine it with the existing totalTransform
+            totalTransform = currentRotation.createConcatenation(totalTransform);
+
+            // ✅ Remove any animation-injected rotation
+            contentGroup.getTransforms().setAll(totalTransform);
+            contentGroup.setRotate(0);  // Clear JavaFX node-level rotation (just in case)
+        } else {
+            autoRotate.play();
+        }
+
+        isAutoRotating = !isAutoRotating;
     }
 }

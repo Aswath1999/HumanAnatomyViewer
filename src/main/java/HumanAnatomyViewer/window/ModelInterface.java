@@ -141,20 +141,7 @@ public class ModelInterface {
         return ids;
     }
 
-    /**
-     * Hides (removes) models associated with selected tree nodes from the display.
-     * @param selectedItems List of selected TreeView nodes
-     */
-    public void hideModels(List<TreeItem<ANode>> selectedItems) {
-        for (TreeItem<ANode> item : selectedItems) {
-            ANode node = item.getValue();
-            if (node == null) continue;
 
-            for (String fileId : node.fileIds()) {
-                innerGroup.getChildren().remove(loadedModels.get(fileId));
-            }
-        }
-    }
 
     /**
      * Attempts to load a 3D model from file if not already loaded.
@@ -348,6 +335,39 @@ public class ModelInterface {
         }
         return Color.GRAY; // default fallback if none found
     }
+
+    public Map<String, Color> getCurrentColorsForSelected() {
+        Map<String, Color> colorMap = new HashMap<>();
+
+        for (String fileId : selectedFileIds) {
+            Group group = loadedModels.get(fileId);
+            if (group != null) {
+                for (var node : group.getChildren()) {
+                    if (node instanceof Shape3D shape && shape.getDrawMode() == DrawMode.FILL) {
+                        if (shape.getMaterial() instanceof PhongMaterial phong) {
+                            colorMap.put(fileId, phong.getDiffuseColor());
+                            break; // Only need one representative color
+                        }
+                    }
+                }
+            }
+        }
+        return colorMap;
+    }
+
+    public void applyColorsFromMap(Map<String, Color> colorMap) {
+        for (Map.Entry<String, Color> entry : colorMap.entrySet()) {
+            String fileId = entry.getKey();
+            Color color = entry.getValue();
+
+            Group group = loadedModels.get(fileId);
+            if (group != null) {
+                applyColorToFilledShapes(group, color);
+            }
+        }
+    }
+
+
 
     // === GETTERS ===
 
