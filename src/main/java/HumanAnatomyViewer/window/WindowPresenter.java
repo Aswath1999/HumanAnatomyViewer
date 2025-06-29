@@ -127,81 +127,84 @@ public class WindowPresenter {
                 controller.getActiveTreeView().getSelectionModel().clearSelection());
 
         /*controller.getShowButton().setOnAction(e -> handleShow());*/
-        controller.getHideButton().setOnAction(e ->
-                modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));
+        /*controller.getHideButton().setOnAction(e ->
+                modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));*/
         controller.getShowButton().setOnAction(e -> {
-
+            // Capture selected TreeItems
             List<TreeItem<ANode>> selectedItems = new ArrayList<>(
                     controller.getActiveTreeView().getSelectionModel().getSelectedItems());
 
+            // Extract fileIds to show
+            Set<String> showFileIds = selectedItems.stream()
+                    .map(TreeItem::getValue)
+                    .filter(Objects::nonNull)
+                    .flatMap(anode -> anode.fileIds().stream())
+                    .collect(Collectors.toSet());
 
-            Set<String> showFileIds = new HashSet<>();
-            for (TreeItem<ANode> item : selectedItems) {
-                ANode node = item.getValue();
-                if (node != null) {
-                    showFileIds.addAll(node.fileIds());
-                }
-            }
-            Set<String> beforeFileIds = modelInterface.getCurrentlyVisibleFileIds();
+            // ⛔ Important: capture current visible state BEFORE changing it!
+            Set<String> beforeVisible = new HashSet<>(modelInterface.getCurrentlyVisibleFileIds());
+            System.out.println("Undo: Showing previous model IDs: " + beforeVisible);
 
-            // ✅ Add Undo/Redo Command
+
+            // === Add Undo/Redo Command ===
             undoRedoManager.add(new SimpleCommand("Show Models",
-                    () -> modelInterface.hideModelsByFileIds(beforeFileIds),         // Undo: hide current
                     () -> {
-                        modelInterface.loadAndDisplayModelsByFileIds(showFileIds);   // Redo: reload previous
-                        modelInterface.syncTreeSelectionFromFileIds();               // Redo: sync TreeView
-                        setup3DScene();                                              // Redo: ensure scene is set up
-                        Platform.runLater(() -> {
-                            innerGroup.applyCss();
-                            innerGroup.layout();
-                            centerContentGroup();
-                            autoAdjustCamera();
-                        });
+                        System.out.println("Undo: Showing previous model IDs: " + beforeVisible);
+                        modelInterface.loadAndDisplayModelsByFileIds(beforeVisible);
+                        modelInterface.syncTreeSelectionFromFileIds();
+                        refreshViewLayout();
+                    },
+                    () -> {
+                        System.out.println("Redo: Re-showing file IDs: " + showFileIds);
+                        modelInterface.loadAndDisplayModelsByFileIds(showFileIds);
+                        modelInterface.syncTreeSelectionFromFileIds();
+                        refreshViewLayout();
                     }
             ));
 
-            // ✅ Perform the actual show operation (initial action)
+            // === Do initial show ===
             modelInterface.loadAndDisplayModelsByFileIds(showFileIds);
             modelInterface.syncTreeSelectionFromFileIds();
-            handleShow(); // Reuses your camera + layout logic
+            refreshViewLayout();
         });
 
 
-      /*  controller.getHideButton().setOnAction(e -> {
-            List<TreeItem<ANode>> selected = new ArrayList<>(controller.getActiveTreeView().getSelectionModel().getSelectedItems());
+        controller.getHideButton().setOnAction(e -> {
+            List<TreeItem<ANode>> selectedItems = new ArrayList<>(
+                    controller.getActiveTreeView().getSelectionModel().getSelectedItems());
 
-            Set<String> fileIds = new HashSet<>();
-            for (TreeItem<ANode> item : selected) {
-                if (item.getValue() != null) {
-                    fileIds.addAll(item.getValue().fileIds());
-                }
-            }
+            Set<String> fileIdsToHide = selectedItems.stream()
+                    .map(TreeItem::getValue)
+                    .filter(Objects::nonNull)
+                    .flatMap(anode -> anode.fileIds().stream())
+                    .collect(Collectors.toSet());
+
+            Set<String> beforeVisible = modelInterface.getCurrentlyVisibleFileIds();
+
+            // Simulate what would be visible after hiding
+            Set<String> afterHideVisible = new HashSet<>(beforeVisible);
+            afterHideVisible.removeAll(fileIdsToHide);
 
             undoRedoManager.add(new SimpleCommand("Hide Models",
                     () -> {
-                        modelInterface.loadAndDisplayModels(selected);
-                        setup3DScene();
-                        Platform.runLater(() -> {
-                            innerGroup.applyCss();
-                            innerGroup.layout();
-
-                            Platform.runLater(() -> {
-                                centerContentGroup();
-                                autoAdjustCamera();
-                            });
-                        });
-
+                        // Undo: restore full original set
+                        modelInterface.loadAndDisplayModelsByFileIds(beforeVisible);
+                        modelInterface.syncTreeSelectionFromFileIds();
+                        refreshViewLayout();
                     },
                     () -> {
-                        modelInterface.hideModelsByFileIds(fileIds);
-                        hide3DScene(); // ✅ Hide the SubScene too
+                        // Redo: apply the hide again
+                        modelInterface.loadAndDisplayModelsByFileIds(afterHideVisible);
+                        modelInterface.syncTreeSelectionFromFileIds();
+                        refreshViewLayout();
                     }
             ));
 
-            modelInterface.hideModels(selected);
-            hide3DScene(); // ✅ When user hides directly
-        });*/
-
+            // Initial hide execution
+            modelInterface.loadAndDisplayModelsByFileIds(afterHideVisible);
+            modelInterface.syncTreeSelectionFromFileIds();
+            refreshViewLayout();
+        });
 
         controller.getColorPicker().setOnAction(e -> {
             Color newColor = controller.getColorPicker().getValue();
@@ -468,6 +471,14 @@ public class WindowPresenter {
         searchHandler.selectAll(query);
     }
 
-
+    private void refreshViewLayout() {
+        setup3DScene(); // only creates it if needed
+        Platform.runLater(() -> {
+            innerGroup.applyCss();
+            innerGroup.layout();
+            centerContentGroup();
+            autoAdjustCamera();
+        });
+    }
 
 }
