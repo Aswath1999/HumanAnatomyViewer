@@ -4,6 +4,7 @@ import HumanAnatomyViewer.model.ANode;
 import HumanAnatomyViewer.model.ObjIO;
 import javafx.application.Platform;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -16,6 +17,7 @@ import javafx.scene.shape.Shape3D;
 import java.io.File;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * ModelInterface handles loading, displaying, interacting with, and styling
@@ -95,12 +97,12 @@ public class ModelInterface {
         // Step 1: Clear previous display
         innerGroup.getChildren().clear();
         innerGroup.getTransforms().clear();
-        System.out.println("Cleared innerGroup and reset transforms.");
+
 
         // Step 2: Update selected file IDs
         selectedFileIds.clear();
         selectedFileIds.addAll(fileIds);
-        System.out.println("Updated selectedFileIds: " + selectedFileIds);
+
 
         // Step 3: Load and display each model
         for (String fileId : fileIds) {
@@ -110,7 +112,7 @@ public class ModelInterface {
             if (modelGroup != null) {
                 // Remove just in case it was already in (paranoia check)
                 if (innerGroup.getChildren().contains(modelGroup)) {
-                    System.out.println("Model group already present — removing before re-adding: " + fileId);
+
                     innerGroup.getChildren().remove(modelGroup);
                 }
 
@@ -124,20 +126,16 @@ public class ModelInterface {
 
         // Step 4: Apply visual highlighting
         applyDrawModeBasedOnSelection();
-        System.out.println("Applied draw modes based on selection.");
-        System.out.println("=== Model loading completed ===\n");
+
     }
 
 
     public Set<String> getCurrentlyVisibleFileIds() {
-        Set<String> visible = new HashSet<>();
-        for (var node : innerGroup.getChildren()) {
-            Object data = node.getUserData();
-            if (data instanceof String fileId) {
-                visible.add(fileId);
-            }
-        }
-        return visible;
+        return innerGroup.getChildren().stream()
+                .map(Node::getUserData)
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .collect(Collectors.toSet());
     }
 
 
