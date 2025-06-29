@@ -371,7 +371,7 @@ public class WindowPresenter {
                     }
                     direction = direction.normalize();
 
-                    Point3D offset = direction.multiply(explodeFactor * 100); // 100 is an arbitrary base offset
+                    Point3D offset = direction.multiply(explodeFactor * 120); // 100 is an arbitrary base offset
 
                     TranslateTransition explode = new TranslateTransition(Duration.seconds(1.2), node);
                     explode.setByX(offset.getX());
