@@ -104,6 +104,7 @@
                                     <ColorPicker fx:id="colorPicker" />
                                     <Button fx:id="undoButton" text="Undo" onAction="#handleUndo"/>
                                     <Button fx:id="redoButton" text="Redo" onAction="#handleRedo"/>
+                                    <Button fx:id="explodeButton" text="Explode" />
                                 </ToolBar>
 
                                 <!-- Visualization Pane - expandable -->

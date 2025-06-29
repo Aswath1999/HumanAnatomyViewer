@@ -2,15 +2,19 @@ package HumanAnatomyViewer.window;
 
 import HumanAnatomyViewer.model.ANode;
 import HumanAnatomyViewer.model.Model;
+import javafx.animation.Interpolator;
+import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Bounds;
+import javafx.geometry.Point3D;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,6 +49,9 @@ public class WindowPresenter {
 
     private final UndoRedoManager undoRedoManager = new UndoRedoManager();   //undo redo functionality
     private SubScene subScene; // make this a field
+
+    private boolean isExploded = false;
+    private final Map<Node, TranslateTransition> activeExplosions = new HashMap<>();
 
     /**
      * Constructor sets up all GUI components and logic connections.
@@ -247,6 +254,17 @@ public class WindowPresenter {
 
         controller.getUndoButton().disableProperty().bind(undoRedoManager.canUndoProperty().not());
         controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
+
+        controller.getExplodeButton().setOnAction(e -> {
+            if (isExploded) {
+                assembleModels();  // Move parts back to original positions
+            } else {
+                explodeModels();   // Push parts outward from center
+            }
+            isExploded = !isExploded;
+        });
+
+
     }
 
     // === Tree Expand/Collapse/Selection ===
@@ -355,55 +373,6 @@ public class WindowPresenter {
     /**
      * Initializes the 3D scene including camera, lighting, and interaction.
      */
-   /* private void setup3DScene() {
-        if (root3D.getChildren().isEmpty()) {
-            contentGroup.getChildren().add(innerGroup);
-            root3D.getChildren().add(contentGroup);
-
-            // Add lights to the scene
-            PointLight pointLight = new PointLight(Color.WHITE);
-            pointLight.setTranslateX(-500);
-            pointLight.setTranslateY(-500);
-            pointLight.setTranslateZ(-500);
-
-            AmbientLight ambientLight = new AmbientLight(Color.DARKGRAY);
-            root3D.getChildren().addAll(pointLight, ambientLight);
-
-            // Set up camera properties
-            camera.setNearClip(0.1);
-            camera.setFarClip(10000);
-            camera.setTranslateZ(-500);
-
-            // Create the SubScene that renders the 3D content
-            SubScene subScene = new SubScene(root3D, 600, 600, true, SceneAntialiasing.BALANCED);
-            subScene.setCamera(camera);
-            subScene.setFill(Color.LIGHTGRAY);
-            subScene.setOnMouseClicked(e -> subScene.requestFocus());
-
-            // Set keyboard controls for camera interaction
-            subScene.setOnKeyPressed(e -> {
-                KeyCode code = e.getCode();
-                switch (code) {
-                    case Z -> interactionHandler.resetTransform();
-                    case I -> interactionHandler.zoom(50);
-                    case O -> interactionHandler.zoom(-50);
-                    case LEFT -> interactionHandler.rotateY(-10);
-                    case RIGHT -> interactionHandler.rotateY(10);
-                    case UP -> interactionHandler.rotateX(-10);
-                    case DOWN -> interactionHandler.rotateX(10);
-                }
-            });
-
-            // Make 3D canvas resize with the window
-            subScene.widthProperty().bind(controller.getVisualizationPane().widthProperty());
-            subScene.heightProperty().bind(controller.getVisualizationPane().heightProperty());
-            controller.getVisualizationPane().getChildren().setAll(subScene);
-
-            // Initialize mouse-based rotation and zoom
-            interactionHandler = new SceneInteractionHandler(contentGroup, camera);
-            interactionHandler.setupMouseInteraction(controller.getVisualizationPane());
-        }
-    }*/
 
     private void setup3DScene() {
         if (subScene == null) {
@@ -497,4 +466,56 @@ public class WindowPresenter {
         });
     }
 
+
+    private void explodeModels() {
+        Point3D center = getGroupCenter(innerGroup);
+
+        for (Node node : innerGroup.getChildren()) {
+            Bounds bounds = node.getBoundsInParent();
+            Point3D partCenter = new Point3D(
+                    (bounds.getMinX() + bounds.getMaxX()) / 2,
+                    (bounds.getMinY() + bounds.getMaxY()) / 2,
+                    (bounds.getMinZ() + bounds.getMaxZ()) / 2
+            );
+
+            Point3D direction = partCenter.subtract(center).normalize();
+            double distance = 150;  // explosion distance
+
+            TranslateTransition tt = new TranslateTransition(Duration.seconds(1.5), node);
+            tt.setToX(direction.getX() * distance);
+            tt.setToY(direction.getY() * distance);
+            tt.setToZ(direction.getZ() * distance);
+            tt.setInterpolator(Interpolator.EASE_OUT);
+            tt.play();
+
+            activeExplosions.put(node, tt);  // Track for reversal
+        }
+    }
+
+
+
+    private void assembleModels() {
+        for (Map.Entry<Node, TranslateTransition> entry : activeExplosions.entrySet()) {
+            Node node = entry.getKey();
+
+            TranslateTransition tt = new TranslateTransition(Duration.seconds(1.5), node);
+            tt.setToX(0);
+            tt.setToY(0);
+            tt.setToZ(0);
+            tt.setInterpolator(Interpolator.EASE_BOTH);
+            tt.play();
+        }
+
+        activeExplosions.clear();  // Clean up after animation
+    }
+
+
+    private Point3D getGroupCenter(Group group) {
+        Bounds bounds = group.getBoundsInParent();
+        return new Point3D(
+                (bounds.getMinX() + bounds.getMaxX()) / 2.0,
+                (bounds.getMinY() + bounds.getMaxY()) / 2.0,
+                (bounds.getMinZ() + bounds.getMaxZ()) / 2.0
+        );
+    }
 }

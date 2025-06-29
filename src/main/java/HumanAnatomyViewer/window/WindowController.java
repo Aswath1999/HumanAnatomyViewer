@@ -65,6 +65,9 @@ public class WindowController {
     @FXML
     private void handleRedo() {}
 
+    @FXML private Button explodeButton;
+    public Button getExplodeButton() { return explodeButton; }
+
     // === Getters for presenter ===
     public Button getExpandButton() { return expandButton; }
     public Button getCollapseButton() { return collapseButton; }
