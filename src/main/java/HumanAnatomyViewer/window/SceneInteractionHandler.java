@@ -106,7 +106,6 @@ public class SceneInteractionHandler {
      */
     public void zoom(double zoomAmount) {
         Point3D camPos = new Point3D(camera.getTranslateX(), camera.getTranslateY(), camera.getTranslateZ());
-        Point3D center = getContentCenter();
         Point3D direction = center.subtract(camPos).normalize(); // Direction from camera to center
 
         double minDistance = 50;     // Prevent zooming in too close
