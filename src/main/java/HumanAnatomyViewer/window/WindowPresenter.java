@@ -233,7 +233,7 @@ public class WindowPresenter {
             undoRedoManager.add(new SimpleCommand("Color Change",
                     () -> {
                         modelInterface.applyColorsFromMap(oldColorMap);
-                        controller.getColorPicker().setValue(oldColorMap.values().stream().findFirst().orElse(Color.GRAY));
+                        controller.getColorPicker().setValue(oldColorMap.values().stream().findFirst().orElse(Color.rgb(200, 200, 200)));
                     },
                     () -> {
                         modelInterface.applyColorsFromMap(newColorMap);
@@ -610,9 +610,9 @@ public class WindowPresenter {
             camera.setTranslateZ(-500);
 
             // Create and configure the SubScene
-            subScene = new SubScene(root3D, 600, 600, true, SceneAntialiasing.BALANCED);
+            subScene = new SubScene(root3D, 800, 800, true, SceneAntialiasing.BALANCED);
             subScene.setCamera(camera);
-            subScene.setFill(Color.LIGHTGRAY);
+            subScene.setFill(Color.rgb(200, 200, 200));
             subScene.setOnMouseClicked(e -> subScene.requestFocus());
 
             subScene.setOnKeyPressed(e -> {
