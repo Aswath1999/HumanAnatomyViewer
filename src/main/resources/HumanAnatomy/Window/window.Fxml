@@ -65,6 +65,7 @@
                                     <Button fx:id="firstButton" onAction="#handleFirst" text="First" />
                                     <Button fx:id="nextButton" onAction="#handleNext" text="Next" />
                                     <Button fx:id="allButton" onAction="#handleAll" text="All" />
+                                    <Button fx:id="aiSearchButton" onAction="#handleAISearch" text="AI Search" />
                                     <Label fx:id="searchStatusLabel" text="" />
                                 </ToolBar>
                                <!-- <ToolBar>

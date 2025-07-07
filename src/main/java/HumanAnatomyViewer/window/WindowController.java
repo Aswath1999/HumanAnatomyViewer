@@ -39,6 +39,8 @@ public class WindowController {
     private Button redoButton;
 
 
+    @FXML private Button aiSearchButton; // ✅ New AI search button
+
 
     private WindowPresenter presenter;
 
@@ -62,11 +64,14 @@ public class WindowController {
     @FXML
     private void handleUndo() {}
 
+    @FXML private void handleAISearch() {} // Handler for AI search
+
     @FXML
     private void handleRedo() {}
 
     @FXML private Button explodeButton;
     public Button getExplodeButton() { return explodeButton; }
+
 
     // === Getters for presenter ===
     public Button getExpandButton() { return expandButton; }
@@ -91,6 +96,7 @@ public class WindowController {
     public TreeView<ANode> getIsATreeView() { return isATreeView; }
 
     public TabPane getTreeTabPane() { return treeTabPane; }
+    public Button getAISearchButton() { return aiSearchButton; }
 
     public Button getUndoButton() {
         return undoButton;
