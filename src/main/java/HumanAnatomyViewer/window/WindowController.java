@@ -5,6 +5,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
+import javafx.stage.DirectoryChooser;
+import java.io.File;
 
 public class WindowController {
 
@@ -38,9 +40,18 @@ public class WindowController {
     @FXML
     private Button redoButton;
 
+    private File customModelDirectory = null;
+
 
     @FXML private Button aiSearchButton; // ✅ New AI search button
 
+
+
+    @FXML private MenuItem menuLoadFiles;
+
+    public MenuItem getMenuLoadFiles() {
+        return menuLoadFiles;
+    }
 
     private WindowPresenter presenter;
 
@@ -71,6 +82,8 @@ public class WindowController {
 
     @FXML private Button explodeButton;
     public Button getExplodeButton() { return explodeButton; }
+
+
 
 
     // === Getters for presenter ===

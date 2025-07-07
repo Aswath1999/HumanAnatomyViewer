@@ -45,6 +45,7 @@ public class ModelInterface {
 
     // Add wrapper group field
 
+    private File customDirectory = null;
 
 
 
@@ -158,11 +159,19 @@ public class ModelInterface {
     private Group loadModelIfAbsent(String fileId) {
         return loadedModels.computeIfAbsent(fileId, id -> {
             try {
-                // Construct path to .obj file in resources
-                URL url = getClass().getResource("/HumanAnatomy/BodyParts/" + id + ".obj");
-                if (url != null) {
-                    return ObjIO.openObjFile(new File(url.toURI()));
+                File modelFile;
+
+                if (customDirectory != null && customDirectory.isDirectory()) {
+                    modelFile = new File(customDirectory, id + ".obj");
+                } else {
+                    URL url = getClass().getResource("/HumanAnatomy/BodyParts/" + id + ".obj");
+                    modelFile = url != null ? new File(url.toURI()) : null;
                 }
+
+                if (modelFile != null && modelFile.exists()) {
+                    return ObjIO.openObjFile(modelFile);
+                }
+
             } catch (Exception e) {
                 System.err.println("Error loading model: " + id);
                 e.printStackTrace();
@@ -399,6 +408,11 @@ public class ModelInterface {
         for (String fileId : fileIds) {
             innerGroup.getChildren().remove(loadedModels.get(fileId));
         }
+    }
+
+
+    public void setCustomDirectory(File directory) {
+        this.customDirectory = directory;
     }
 
 }

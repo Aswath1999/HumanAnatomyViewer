@@ -15,11 +15,15 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Translate;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.File;
 import java.util.*;
 import javafx.animation.PauseTransition;
+
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -131,8 +135,10 @@ public class WindowPresenter {
      */
     private void setupButtonHandlers() {
         controller.getExpandButton().setOnAction(e -> expandSelected());
+        controller.getMenuLoadFiles().setOnAction(e -> promptUserToSelectModelDirectory());
         controller.getCollapseButton().setOnAction(e -> collapseSelected());
         controller.getSelectButton().setOnAction(e -> selectAllDescendants());
+        controller.getAISearchButton().setOnAction(e -> handleAISearch());
         controller.getDeselectButton().setOnAction(e ->
                 controller.getActiveTreeView().getSelectionModel().clearSelection());
 
@@ -257,87 +263,7 @@ public class WindowPresenter {
 
         controller.getUndoButton().disableProperty().bind(undoRedoManager.canUndoProperty().not());
         controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
-       /* controller.getExplodeButton().setOnAction(e -> {
-            if (!isExploded) {
-                originalPositions.clear();
 
-                List<TranslateTransition> explodeAnimations = new ArrayList<>();
-                List<TranslateTransition> assembleAnimations = new ArrayList<>();
-
-                // === 1. Compute center of the whole model group ===
-                Bounds bounds = modelInterface.getInnerGroup().getBoundsInParent();
-                Point3D globalCenter = new Point3D(
-                        (bounds.getMinX() + bounds.getMaxX()) / 2,
-                        (bounds.getMinY() + bounds.getMaxY()) / 2,
-                        (bounds.getMinZ() + bounds.getMaxZ()) / 2
-                );
-
-                double explodeFactor = 1.5;  // 🔧 Adjust this to push parts further out
-
-                for (Node node : modelInterface.getInnerGroup().getChildren()) {
-                    // === 2. Save original position for assembly later ===
-                    Point3D original = new Point3D(node.getTranslateX(), node.getTranslateY(), node.getTranslateZ());
-                    originalPositions.put(node, original);
-
-                    // === 3. Calculate node center and explosion direction ===
-                    Bounds nodeBounds = node.getBoundsInParent();
-                    Point3D nodeCenter = new Point3D(
-                            (nodeBounds.getMinX() + nodeBounds.getMaxX()) / 2,
-                            (nodeBounds.getMinY() + nodeBounds.getMaxY()) / 2,
-                            (nodeBounds.getMinZ() + nodeBounds.getMaxZ()) / 2
-                    );
-
-                    Point3D direction = nodeCenter.subtract(globalCenter).normalize();
-                    double distance = nodeCenter.distance(globalCenter);
-                    Point3D offset = direction.multiply(distance * explodeFactor);
-
-                    // === 4. Create Explode Animation ===
-                    TranslateTransition explode = new TranslateTransition(Duration.seconds(1.5), node);
-                    explode.setByX(offset.getX());
-         *//*           explode.setByY(offset.getY());*//*
-                    explode.setByZ(offset.getZ());
-                    explode.setInterpolator(Interpolator.EASE_OUT);
-                    explodeAnimations.add(explode);
-
-                    // === 5. Create Assemble Animation ===
-                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
-                    assemble.setToX(original.getX());
-         *//*           assemble.setToY(original.getY());*//*
-                    assemble.setToZ(original.getZ());
-                    assemble.setInterpolator(Interpolator.EASE_BOTH);
-                    assembleAnimations.add(assemble);
-                }
-
-                // === 6. Create Pause Transition ===
-                PauseTransition pause = new PauseTransition(Duration.seconds(2));
-
-                // === 7. Chain Explode → Pause → Assemble ===
-                ParallelTransition explodeAll = new ParallelTransition();
-                explodeAll.getChildren().addAll(explodeAnimations);
-
-                ParallelTransition assembleAll = new ParallelTransition();
-                assembleAll.getChildren().addAll(assembleAnimations);
-
-                SequentialTransition sequence = new SequentialTransition(explodeAll, pause, assembleAll);
-                sequence.setOnFinished(event -> isExploded = false); // Reset flag after animation
-                sequence.play();
-
-            } else {
-                // === Manual Assembly when already exploded ===
-                for (Node node : modelInterface.getInnerGroup().getChildren()) {
-                    Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
-
-                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
-                    assemble.setToX(original.getX());
-         *//*           assemble.setToY(original.getY());*//*
-                    assemble.setToZ(original.getZ());
-                    assemble.setInterpolator(Interpolator.EASE_BOTH);
-                    assemble.play();
-                }
-
-                isExploded = false;
-            }
-        });*/
         controller.getExplodeButton().setOnAction(e -> {
             if (!isExploded) {
                 originalPositions.clear();
@@ -416,72 +342,25 @@ public class WindowPresenter {
                 isExploded = false;
             }
         });
-/*
-        controller.getExplodeButton().setOnAction(e -> {
-            if (!isExploded) {
-                originalPositions.clear();
 
-                List<TranslateTransition> explodeAnimations = new ArrayList<>();
-                List<TranslateTransition> assembleAnimations = new ArrayList<>();
 
-                for (Node node : modelInterface.getInnerGroup().getChildren()) {
-                    Point3D original = new Point3D(node.getTranslateX(), node.getTranslateY(), node.getTranslateZ());
-                    originalPositions.put(node, original);
+    }
 
-                    // === EXPLODE Animation ===
+    public void promptUserToSelectModelDirectory() {
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Select Model Directory");
 
-                    double offsetX = Math.random() * 300 - 150;
-                    double offsetY = 200;
-                    double offsetZ = Math.random() * 300 - 150;
+        File selectedDir = chooser.showDialog(stage); // Use stage for modality
+        if (selectedDir != null && selectedDir.isDirectory()) {
+            modelInterface.setCustomDirectory(selectedDir);
+            System.out.println("✔ Custom model directory set: " + selectedDir.getAbsolutePath());
+        } else {
+            System.out.println("⚠ No directory selected or invalid.");
+        }
+    }
 
-                    TranslateTransition explode = new TranslateTransition(Duration.seconds(1.5), node);
-                    explode.setByX(offsetX);
-                    explode.setByY(offsetY);
-                    explode.setByZ(offsetZ);
-                    explode.setInterpolator(Interpolator.EASE_OUT);
-                    explodeAnimations.add(explode);
-
-                    // === ASSEMBLE Animation ===
-                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
-                    assemble.setToX(original.getX());
-                    assemble.setToY(original.getY());
-                    assemble.setToZ(original.getZ());
-                    assemble.setInterpolator(Interpolator.EASE_BOTH);
-                    assembleAnimations.add(assemble);
-                }
-
-                // === Pause between explode and assemble ===
-                PauseTransition pause = new PauseTransition(Duration.seconds(2));
-
-                // === Chain: Explode → Pause → Assemble ===
-                ParallelTransition explodeAll = new ParallelTransition();
-                explodeAll.getChildren().addAll(explodeAnimations);
-
-                ParallelTransition assembleAll = new ParallelTransition();
-                assembleAll.getChildren().addAll(assembleAnimations);
-
-                SequentialTransition sequence = new SequentialTransition(explodeAll, pause, assembleAll);
-                sequence.setOnFinished(event -> isExploded = false); // Reset flag after assemble
-                sequence.play();
-
-            } else {
-                // If user presses button again while exploded (manual assemble)
-                for (Node node : modelInterface.getInnerGroup().getChildren()) {
-                    Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
-
-                    TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.5), node);
-                    assemble.setToX(original.getX());
-                    assemble.setToY(original.getY());
-                    assemble.setToZ(original.getZ());
-                    assemble.setInterpolator(Interpolator.EASE_BOTH);
-                    assemble.play();
-                }
-
-                isExploded = false;
-            }
-        });
-*/
-
+    public void setCustomModelDirectory(File directory) {
+        modelInterface.setCustomDirectory(directory); // ✔ connects to the method you added
     }
 
     // === Tree Expand/Collapse/Selection ===
@@ -665,6 +544,9 @@ public class WindowPresenter {
         searchHandler.selectAll(query);
     }
 
+
+
+
     private void refreshViewLayout() {
         setup3DScene(); // only creates it if needed
         Platform.runLater(() -> {
@@ -685,4 +567,57 @@ public class WindowPresenter {
                 (bounds.getMinZ() + bounds.getMaxZ()) / 2.0
         );
     }
+
+    public void handleAISearch() {
+        String query = controller.getSearchTextField().getText();
+        if (query == null || query.isBlank()) {
+            controller.getSearchStatusLabel().setText("Please enter a query.");
+            return;
+        }
+
+        List<String> leafLabels = getLeafLabelsFromTree(controller.getActiveTreeView());
+        AIRegexTask task = new AIRegexTask(query, leafLabels);
+
+        task.setOnSucceeded(e -> {
+            String regex = task.getValue();
+            if (regex == null || regex.isEmpty()) {
+                controller.getSearchStatusLabel().setText("❌ No regex returned from AI.");
+                return;
+            }
+
+            // Use regex with "r:" prefix to trigger regex mode in TreeSearchHandler
+            String searchRegex = "r:" + regex;
+            boolean success = searchHandler.search(searchRegex);
+
+            if (!success) {
+                controller.getSearchStatusLabel().setText("⚠ AI returned regex, but no matches found.");
+            }
+        });
+
+        task.setOnFailed(e -> {
+            controller.getSearchStatusLabel().setText("❌ AI search failed.");
+            task.getException().printStackTrace();
+        });
+
+        new Thread(task).start();
+    }
+
+    private List<String> getLeafLabelsFromTree(TreeView<ANode> tree) {
+        List<String> labels = new ArrayList<>();
+        collectLeafLabels(tree.getRoot(), labels);
+        return labels;
+    }
+
+    private void collectLeafLabels(TreeItem<ANode> item, List<String> list) {
+        if (item.getChildren().isEmpty()) {
+            if (item.getValue() != null && item.getValue().name() != null) {
+                list.add(item.getValue().name().toLowerCase());
+            }
+        } else {
+            for (TreeItem<ANode> child : item.getChildren()) {
+                collectLeafLabels(child, list);
+            }
+        }
+    }
+
 }

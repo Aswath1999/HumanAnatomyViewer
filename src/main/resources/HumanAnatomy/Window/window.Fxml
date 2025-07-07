@@ -32,6 +32,7 @@
                     <menus>
                         <Menu text="File">
                             <items>
+                                <MenuItem fx:id="menuLoadFiles" text="Load files" />
                                 <MenuItem text="Close" />
                             </items>
                         </Menu>
