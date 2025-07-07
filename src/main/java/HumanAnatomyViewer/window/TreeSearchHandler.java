@@ -32,6 +32,8 @@ public class TreeSearchHandler {
     private int currentIndex = -1;                                         // Index of current item for navigation
     private TreeItem<ANode> lastSearchRoot = null;                         // Used to detect if tree structure changed
 
+
+    private String lastQuery = "";
     /**
      * Constructor for the search handler.
      *
@@ -53,7 +55,9 @@ public class TreeSearchHandler {
      */
     public boolean search(String query) {
         TreeView<ANode> treeView = treeViewSupplier.get();
+        lastQuery = query;
         query = query.trim();
+
 
         boolean useRegex = query.startsWith("r:");
 
@@ -122,7 +126,7 @@ public class TreeSearchHandler {
     public void showFirst(String query) {
         TreeView<ANode> treeView = treeViewSupplier.get();
 
-        if (treeRootChanged(treeView) || searchResults.isEmpty()) {
+        if (treeRootChanged(treeView) || searchResults.isEmpty() || !query.equals(lastQuery)) {
             if (!search(query)) return;
         }
 
@@ -139,7 +143,7 @@ public class TreeSearchHandler {
     public void showNext(String query) {
         TreeView<ANode> treeView = treeViewSupplier.get();
 
-        if (treeRootChanged(treeView) || searchResults.isEmpty()) {
+        if (treeRootChanged(treeView) || searchResults.isEmpty() || !query.equals(lastQuery)) {
             if (!search(query)) return;
         }
 
@@ -156,7 +160,7 @@ public class TreeSearchHandler {
     public void selectAll(String query) {
         TreeView<ANode> treeView = treeViewSupplier.get();
 
-        if (treeRootChanged(treeView) || searchResults.isEmpty()) {
+        if (treeRootChanged(treeView) || searchResults.isEmpty() || !query.equals(lastQuery)) {
             if (!search(query)) return;
         }
 

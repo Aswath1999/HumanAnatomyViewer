@@ -47,7 +47,7 @@ public class WindowPresenter {
     private SceneInteractionHandler interactionHandler;   // Manages mouse/keyboard 3D interaction
     private ModelInterface modelInterface;                // Loads, displays, and styles 3D models
     private TreeSearchHandler searchHandler;              // Manages searching within the TreeView
-
+    private String lastQuery = "";
 
 
     private final UndoRedoManager undoRedoManager = new UndoRedoManager();   //undo redo functionality
