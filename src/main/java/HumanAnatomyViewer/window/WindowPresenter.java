@@ -595,7 +595,7 @@ public class WindowPresenter {
 
             // Add lights if not present
             if (root3D.getChildren().stream().noneMatch(n -> n instanceof PointLight || n instanceof AmbientLight)) {
-                PointLight pointLight = new PointLight(Color.WHITE);
+                PointLight pointLight = new PointLight(Color.GRAY);
                 pointLight.setTranslateX(-500);
                 pointLight.setTranslateY(-500);
                 pointLight.setTranslateZ(-500);

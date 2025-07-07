@@ -10,6 +10,8 @@ import javafx.scene.control.TreeView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * TreeSearchHandler manages search and navigation operations on a TreeView<ANode>.
@@ -41,6 +43,8 @@ public class TreeSearchHandler {
         this.statusLabel = statusLabel;
     }
 
+
+
     /**
      * Performs a search across the currently active TreeView based on the given query.
      *
@@ -48,24 +52,39 @@ public class TreeSearchHandler {
      * @return true if matches are found, false otherwise
      */
     public boolean search(String query) {
-        TreeView<ANode> treeView = treeViewSupplier.get(); // Always get latest active tree
+        TreeView<ANode> treeView = treeViewSupplier.get();
+        query = query.trim();
 
-        query = query.trim().toLowerCase(); // Normalize query
-        searchResults.clear();              // Clear any previous results
-        currentIndex = -1;
+        boolean useRegex = query.startsWith("r:");
 
-        if (query.isEmpty()) {
-            statusLabel.setText("Please enter a search term.");
-            return false;
+        Pattern pattern = null;
+        List<String> terms = new ArrayList<>();
+
+        if (useRegex) {
+            String regex = query.substring(2); // remove "r:"
+            try {
+                pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+            } catch (Exception e) {
+                statusLabel.setText("Invalid regex: " + e.getMessage());
+                return false;
+            }
+        } else {
+            // Split by space for multiple plain terms like "rib heart"
+            for (String word : query.split("\\s+")) {
+                terms.add(word.toLowerCase());
+            }
         }
+
+        searchResults.clear();
+        currentIndex = -1;
 
         TreeItem<ANode> root = treeView.getRoot();
         lastSearchRoot = root;
-        findMatches(root, query); // Recursively collect matches
+        findMatches(root, useRegex, terms, pattern);
 
         if (!searchResults.isEmpty()) {
             currentIndex = 0;
-            selectItem(treeView, searchResults.get(currentIndex)); // Highlight first match
+            selectItem(treeView, searchResults.get(currentIndex));
             statusLabel.setText("Found " + searchResults.size() + " matches");
             return true;
         } else {
@@ -73,7 +92,27 @@ public class TreeSearchHandler {
             return false;
         }
     }
+    private void findMatches(TreeItem<ANode> root, boolean useRegex, List<String> terms, Pattern pattern) {
+        String name = root.getValue() != null ? root.getValue().name() : null;
 
+        boolean matches = false;
+        if (name != null) {
+            if (useRegex) {
+                matches = pattern.matcher(name).find();
+            } else {
+                String lowered = name.toLowerCase();
+                matches = terms.stream().anyMatch(lowered::contains);
+            }
+        }
+
+        if (matches) {
+            searchResults.add(root);
+        }
+
+        for (TreeItem<ANode> child : root.getChildren()) {
+            findMatches(child, useRegex, terms, pattern);
+        }
+    }
     /**
      * Highlights the first match result for the given query.
      * Re-triggers search if results are stale or tree has changed.
