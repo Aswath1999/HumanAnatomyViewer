@@ -14,7 +14,7 @@ public class AISearchService {
 
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
     // ❗ In production, use: System.getenv("OPENAI_API_KEY")
-    private static final String API_KEY = "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";
+    private static final String API_KEY = "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";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static String getRegexFromQuery(String query, List<String> termList) throws IOException {
