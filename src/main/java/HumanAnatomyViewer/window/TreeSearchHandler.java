@@ -58,27 +58,25 @@ public class TreeSearchHandler {
         lastQuery = query;
         query = query.trim();
 
-        // Convert query into regex expression
-        String rawRegex = query
-                .replaceAll("\\s*[,;]\\s*", "|")     // comma or semicolon → regex OR
-                .replaceAll("\\s+", "\\\\s+");     // flexible space matching
+        // Support multiple patterns from AI output using comma or semicolon
+        String[] patterns = query.split("\\s*[,;]\\s*");
 
-        String regex = "(?i).*(" + rawRegex + ").*";     // case-insensitive match
-
-        Pattern pattern;
-        try {
-            pattern = Pattern.compile(regex);
-        } catch (Exception e) {
-            statusLabel.setText("Invalid regex: " + e.getMessage());
-            return false;
+        List<Pattern> compiledPatterns = new ArrayList<>();
+        for (String rawRegex : patterns) {
+            try {
+                compiledPatterns.add(Pattern.compile("(?i).*(" + rawRegex + ").*"));
+            } catch (Exception e) {
+                statusLabel.setText("Invalid regex: " + rawRegex);
+                return false;
+            }
         }
 
         searchResults.clear();
         currentIndex = -1;
-
         TreeItem<ANode> root = treeView.getRoot();
         lastSearchRoot = root;
-        findMatches(root, pattern);
+
+        findMatches(root, compiledPatterns);
 
         if (!searchResults.isEmpty()) {
             currentIndex = 0;
@@ -91,17 +89,20 @@ public class TreeSearchHandler {
         }
     }
 
-    private void findMatches(TreeItem<ANode> root, Pattern pattern) {
+    private void findMatches(TreeItem<ANode> root, List<Pattern> patterns) {
         String name = root.getValue() != null ? root.getValue().name() : null;
 
-        boolean matches = name != null && pattern.matcher(name).find();
-
-        if (matches) {
-            searchResults.add(root);
+        if (name != null) {
+            for (Pattern pattern : patterns) {
+                if (pattern.matcher(name).find()) {
+                    searchResults.add(root);
+                    break; // Match found, no need to try more patterns
+                }
+            }
         }
 
         for (TreeItem<ANode> child : root.getChildren()) {
-            findMatches(child, pattern);
+            findMatches(child, patterns);
         }
     }
 

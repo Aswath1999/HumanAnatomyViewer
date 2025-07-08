@@ -27,9 +27,12 @@ public class AISearchService {
 
         // System prompt
         String prompt = "You are an expert in anatomy and Java regular expressions.\n" +
-                "When the user asks for a category of structures (e.g., 'all bones in the leg' or 'veins in the heart'), " +
-                "generate a Java regular expression that matches terms related to that query, including known synonyms and variants.\n" +
-                "Only output a valid Java regex pattern. No explanation.";
+                "You have access to the following list of available anatomical terms:\n" +
+                String.join(", ", termList) + "\n" +
+                "When the user asks for a subset (e.g., 'veins in the brain' or 'bones in the leg'), " +
+                "respond with a list of Java regex patterns, each separated by a comma or semicolon.\n" +
+                "Each pattern must match relevant terms from the list using the OR operator (`|`).\n" +
+                "Only return the regex list — no explanation.";
 
         messages.add(object("system", prompt));
         messages.add(object("user", query));

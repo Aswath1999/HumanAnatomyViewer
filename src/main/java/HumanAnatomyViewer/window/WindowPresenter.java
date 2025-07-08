@@ -586,7 +586,7 @@ public class WindowPresenter {
             }
 
             // Use regex with "r:" prefix to trigger regex mode in TreeSearchHandler
-            String searchRegex = "r:" + regex;
+            String searchRegex =regex;
             boolean success = searchHandler.search(searchRegex);
 
             if (!success) {
