@@ -12,13 +12,14 @@ import java.util.List;
 
 public class AISearchService {
 
-    private static final String API_URL = "https://api.openai.com/v1/chat/completions";
+    private static final String API_URL = " http://134.2.9.180/v1/chat/completions";
     // ❗ In production, use: System.getenv("OPENAI_API_KEY")
-    private static final String API_KEY = "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";
+    private static final String API_KEY = System.getenv("OPENAPI_API_KEY");
+
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static String getRegexFromQuery(String query, List<String> termList) throws IOException {
-        System.out.println("🔍 [AI SEARCH] Starting request to OpenAI...");
+        System.out.println("🔍 [AI SEARCH] Starting request to OpenAI..."+ System.getenv("OPENAPI_API_KEY"));
         System.out.println("🔹 User query: " + query);
         System.out.println("🔹 Number of terms: " + termList.size());
 
@@ -26,10 +27,9 @@ public class AISearchService {
 
         // System prompt
         String prompt = "You are an expert in anatomy and Java regular expressions.\n" +
-                "You have access to the following list of terms:\n" +
-                String.join("\n", termList) + "\n" +
-                "When the user asks for a subset (e.g. all bones in the torso), respond with a single Java regex that matches all and only relevant terms.\n" +
-                "Output only the regex, no explanation.";
+                "When the user asks for a category of structures (e.g., 'all bones in the leg' or 'veins in the heart'), " +
+                "generate a Java regular expression that matches terms related to that query, including known synonyms and variants.\n" +
+                "Only output a valid Java regex pattern. No explanation.";
 
         messages.add(object("system", prompt));
         messages.add(object("user", query));
