@@ -58,25 +58,19 @@ public class TreeSearchHandler {
         lastQuery = query;
         query = query.trim();
 
+        // Convert query into regex expression
+        String rawRegex = query
+                .replaceAll("\\s*[,;]\\s*", "|")     // comma or semicolon → regex OR
+                .replaceAll("\\s+", "\\\\s+");     // flexible space matching
 
-        boolean useRegex = query.startsWith("r:");
+        String regex = "(?i).*(" + rawRegex + ").*";     // case-insensitive match
 
-        Pattern pattern = null;
-        List<String> terms = new ArrayList<>();
-
-        if (useRegex) {
-            String regex = query.substring(2); // remove "r:"
-            try {
-                pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-            } catch (Exception e) {
-                statusLabel.setText("Invalid regex: " + e.getMessage());
-                return false;
-            }
-        } else {
-            // Split by space for multiple plain terms like "rib heart"
-            for (String word : query.split("\\s+")) {
-                terms.add(word.toLowerCase());
-            }
+        Pattern pattern;
+        try {
+            pattern = Pattern.compile(regex);
+        } catch (Exception e) {
+            statusLabel.setText("Invalid regex: " + e.getMessage());
+            return false;
         }
 
         searchResults.clear();
@@ -84,7 +78,7 @@ public class TreeSearchHandler {
 
         TreeItem<ANode> root = treeView.getRoot();
         lastSearchRoot = root;
-        findMatches(root, useRegex, terms, pattern);
+        findMatches(root, pattern);
 
         if (!searchResults.isEmpty()) {
             currentIndex = 0;
@@ -96,27 +90,21 @@ public class TreeSearchHandler {
             return false;
         }
     }
-    private void findMatches(TreeItem<ANode> root, boolean useRegex, List<String> terms, Pattern pattern) {
+
+    private void findMatches(TreeItem<ANode> root, Pattern pattern) {
         String name = root.getValue() != null ? root.getValue().name() : null;
 
-        boolean matches = false;
-        if (name != null) {
-            if (useRegex) {
-                matches = pattern.matcher(name).find();
-            } else {
-                String lowered = name.toLowerCase();
-                matches = terms.stream().anyMatch(lowered::contains);
-            }
-        }
+        boolean matches = name != null && pattern.matcher(name).find();
 
         if (matches) {
             searchResults.add(root);
         }
 
         for (TreeItem<ANode> child : root.getChildren()) {
-            findMatches(child, useRegex, terms, pattern);
+            findMatches(child, pattern);
         }
     }
+
     /**
      * Highlights the first match result for the given query.
      * Re-triggers search if results are stale or tree has changed.
