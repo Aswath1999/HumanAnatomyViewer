@@ -576,34 +576,15 @@ public class WindowPresenter {
         }
 
         List<String> leafLabels = getLeafLabelsFromTree(controller.getActiveTreeView());
-        AIRegexTask task = new AIRegexTask(query, leafLabels);
 
-        task.setOnSucceeded(e -> {
-            String regex = task.getValue();
-            if (regex == null || regex.isEmpty()) {
-                controller.getSearchStatusLabel().setText("❌ No regex returned from AI.");
-                return;
-            }
+        boolean isColorQuery = query.toLowerCase().matches(".*\\b(color|paint|fill)\\b.*");
 
-            String searchRegex = regex;
-            boolean success = searchHandler.search(searchRegex);
-
-            if (success) {
-                // Automatically select all matches
-                searchHandler.selectAll(searchRegex);  // ✅ Add this line
-            } else {
-                controller.getSearchStatusLabel().setText("⚠ AI returned regex, but no matches found.");
-            }
-        });
-
-        task.setOnFailed(e -> {
-            controller.getSearchStatusLabel().setText("❌ AI search failed.");
-            task.getException().printStackTrace();
-        });
-
-        new Thread(task).start();
+        if (isColorQuery) {
+            runColorSuggestionFlow(query, leafLabels);
+        } else {
+            runRegexSearchFlow(query, leafLabels);
+        }
     }
-
 
     private List<String> getLeafLabelsFromTree(TreeView<ANode> tree) {
         List<String> labels = new ArrayList<>();
@@ -620,6 +601,97 @@ public class WindowPresenter {
             for (TreeItem<ANode> child : item.getChildren()) {
                 collectLeafLabels(child, list);
             }
+        }
+    }
+
+
+    private void runRegexSearchFlow(String query, List<String> leafLabels) {
+        AIRegexTask task = new AIRegexTask(query, leafLabels);
+
+        task.setOnSucceeded(e -> {
+            String regex = task.getValue();
+            if (regex == null || regex.isEmpty()) {
+                controller.getSearchStatusLabel().setText("❌ No regex returned from AI.");
+                return;
+            }
+
+            boolean success = searchHandler.search(regex);
+            if (success) {
+                searchHandler.selectAll(regex);
+                controller.getSearchStatusLabel().setText("✅ Found and selected matches.");
+            } else {
+                controller.getSearchStatusLabel().setText("⚠ AI returned regex, but no matches found.");
+            }
+        });
+
+        task.setOnFailed(e -> {
+            controller.getSearchStatusLabel().setText("❌ AI search failed.");
+            task.getException().printStackTrace();
+        });
+
+        new Thread(task).start();
+    }
+
+    private void runColorSuggestionFlow(String query, List<String> leafLabels) {
+        new Thread(() -> {
+            try {
+                Map<String, String> colorMap = AISearchService.getColorMapFromQuery(query, leafLabels);
+
+                if (colorMap.isEmpty()) {
+                    Platform.runLater(() -> controller.getSearchStatusLabel().setText("⚠ No color matches found."));
+                    return;
+                }
+
+                Platform.runLater(() -> {
+                    Map<String, Color> fileIdToColor = new HashMap<>();
+
+                    for (Map.Entry<String, String> entry : colorMap.entrySet()) {
+                        String term = entry.getKey().toLowerCase();
+                        String hex = entry.getValue();
+
+                        // Select tree nodes via searchHandler
+                        boolean found = searchHandler.search(term);
+                        if (found) {
+                            searchHandler.selectAll(term);
+                        }
+
+                        List<TreeItem<ANode>> matchingItems = findMatchingTreeItems(term);
+                        for (TreeItem<ANode> item : matchingItems) {
+                            if (item.getValue() != null) {
+                                for (String fileId : item.getValue().fileIds()) {
+                                    fileIdToColor.put(fileId, Color.web(hex));
+                                }
+                            }
+                        }
+                    }
+
+                    modelInterface.loadAndDisplayModelsByFileIds(fileIdToColor.keySet());
+                    modelInterface.applyColorsFromMap(fileIdToColor);
+                    modelInterface.syncTreeSelectionFromFileIds();
+                    refreshViewLayout();
+                    controller.getSearchStatusLabel().setText("🎨 Applied AI-suggested colors.");
+                });
+
+            } catch (Exception e) {
+                Platform.runLater(() -> controller.getSearchStatusLabel().setText("❌ AI color suggestion failed."));
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+
+    private List<TreeItem<ANode>> findMatchingTreeItems(String term) {
+        List<TreeItem<ANode>> result = new ArrayList<>();
+        matchTreeItems(controller.getActiveTreeView().getRoot(), term, result);
+        return result;
+    }
+
+    private void matchTreeItems(TreeItem<ANode> node, String term, List<TreeItem<ANode>> result) {
+        if (node.getValue() != null && node.getValue().name().toLowerCase().contains(term)) {
+            result.add(node);
+        }
+        for (TreeItem<ANode> child : node.getChildren()) {
+            matchTreeItems(child, term, result);
         }
     }
 
