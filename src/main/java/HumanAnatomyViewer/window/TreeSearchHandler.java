@@ -59,7 +59,7 @@ public class TreeSearchHandler {
         query = query.trim();
 
         // Support multiple patterns from AI output using comma or semicolon
-        String[] patterns = query.split("\\s*[,;]\\s*");
+        String[] patterns = query.split("\\s*[,;|]\\s*");
 
         List<Pattern> compiledPatterns = new ArrayList<>();
         for (String rawRegex : patterns) {

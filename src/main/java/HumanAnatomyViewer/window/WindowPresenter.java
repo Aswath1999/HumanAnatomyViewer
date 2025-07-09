@@ -585,11 +585,13 @@ public class WindowPresenter {
                 return;
             }
 
-            // Use regex with "r:" prefix to trigger regex mode in TreeSearchHandler
-            String searchRegex =regex;
+            String searchRegex = regex;
             boolean success = searchHandler.search(searchRegex);
 
-            if (!success) {
+            if (success) {
+                // Automatically select all matches
+                searchHandler.selectAll(searchRegex);  // ✅ Add this line
+            } else {
                 controller.getSearchStatusLabel().setText("⚠ AI returned regex, but no matches found.");
             }
         });
@@ -601,6 +603,7 @@ public class WindowPresenter {
 
         new Thread(task).start();
     }
+
 
     private List<String> getLeafLabelsFromTree(TreeView<ANode> tree) {
         List<String> labels = new ArrayList<>();
