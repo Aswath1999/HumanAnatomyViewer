@@ -36,9 +36,10 @@
                                 <MenuItem text="Close" />
                             </items>
                         </Menu>
-                        <Menu text="Edit">
+                        <Menu text="View">
                             <items>
-                                <MenuItem text="Delete" />
+                                <MenuItem fx:id="menuToggleFullScreen" text="Show Full Screen" />
+                                <MenuItem fx:id="menuEnableDarkMode" text="Enable Dark Mode" />
                             </items>
                         </Menu>
                         <Menu text="Help">

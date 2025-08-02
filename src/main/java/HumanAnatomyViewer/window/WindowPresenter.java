@@ -57,6 +57,9 @@ public class WindowPresenter {
     private boolean isExploded = false;
     private final Map<Node, Point3D> originalPositions = new HashMap<>();
 
+    //for dark mode
+    private boolean darkModeEnabled = false;
+
     /**
      * Constructor sets up all GUI components and logic connections.
      *
@@ -416,6 +419,11 @@ public class WindowPresenter {
                 isExploded = false;
             }
         });
+        //dark mode
+        controller.getMenuEnableDarkMode().setOnAction(e -> enableDarkMode());
+        //full screen
+        controller.getMenuToggleFullScreen().setOnAction(e -> toggleFullScreen());
+
 
     }
 
@@ -752,6 +760,33 @@ public class WindowPresenter {
         for (TreeItem<ANode> child : node.getChildren()) {
             matchTreeItems(child, term, result);
         }
+    }
+
+//enable dark mode
+    private void enableDarkMode() {
+        Scene scene = stage.getScene();
+        String darkStyle = getClass().getResource("/HumanAnatomy/modena_dark.css").toExternalForm();
+
+        if (!darkModeEnabled) {
+            scene.getStylesheets().add(darkStyle);
+            darkModeEnabled = true;
+            controller.getMenuEnableDarkMode().setText("Disable Dark Mode");
+        } else {
+            scene.getStylesheets().remove(darkStyle);
+            darkModeEnabled = false;
+            controller.getMenuEnableDarkMode().setText("Enable Dark Mode");
+        }
+    }
+
+    // Enable or disable full screen and update the menu text accordingly
+    private void toggleFullScreen() {
+        boolean goingFullScreen = !stage.isFullScreen(); // determine new state
+        stage.setFullScreen(goingFullScreen);            // apply full screen toggle
+
+        // Update menu text to reflect the new state
+        controller.getMenuToggleFullScreen().setText(
+                goingFullScreen ? "Exit Full Screen" : "Show Full Screen"
+        );
     }
 
 }

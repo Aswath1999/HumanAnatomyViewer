@@ -49,9 +49,15 @@ public class WindowController {
 
     @FXML private MenuItem menuLoadFiles;
 
+    @FXML private MenuItem menuEnableDarkMode;
+    @FXML private MenuItem menuToggleFullScreen;
+
     public MenuItem getMenuLoadFiles() {
         return menuLoadFiles;
     }
+
+    public MenuItem getMenuEnableDarkMode() {return menuEnableDarkMode;}
+    public MenuItem getMenuToggleFullScreen() {return menuToggleFullScreen;}
 
     private WindowPresenter presenter;
 
