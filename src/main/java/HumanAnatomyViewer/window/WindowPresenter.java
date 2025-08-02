@@ -2,8 +2,12 @@ package HumanAnatomyViewer.window;
 
 import HumanAnatomyViewer.model.ANode;
 import HumanAnatomyViewer.model.Model;
+import java.io.File;
+import java.util.*;
+import java.util.stream.Collectors;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
+import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
@@ -19,16 +23,10 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import java.io.File;
-import java.util.*;
-import javafx.animation.PauseTransition;
-
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 /**
- * WindowPresenter handles the main logic and interaction for the application window.
- * It connects the data model, GUI (via the controller), and 3D scene rendering.
+ * WindowPresenter handles the main logic and interaction for the application
+ * window. It connects the data model, GUI (via the controller), and 3D scene
+ * rendering.
  */
 public class WindowPresenter {
 
@@ -53,7 +51,6 @@ public class WindowPresenter {
     private TreeSearchHandler searchHandler;              // Manages searching within the TreeView
     private String lastQuery = "";
 
-
     private final UndoRedoManager undoRedoManager = new UndoRedoManager();   //undo redo functionality
     private SubScene subScene; // make this a field
 
@@ -62,6 +59,7 @@ public class WindowPresenter {
 
     /**
      * Constructor sets up all GUI components and logic connections.
+     *
      * @param stage JavaFX stage (window)
      * @param controller WindowController (FXML controller)
      * @param model The data model representing anatomy and file structure
@@ -97,7 +95,9 @@ public class WindowPresenter {
     }
 
     /**
-     * Recursively converts an ANode-based model into a JavaFX TreeItem-based tree.
+     * Recursively converts an ANode-based model into a JavaFX TreeItem-based
+     * tree.
+     *
      * @param node ANode model node
      * @return TreeItem representation
      */
@@ -111,11 +111,14 @@ public class WindowPresenter {
     }
 
     /**
-     * Listens to selection changes in the TreeView and updates the 3D view accordingly.
+     * Listens to selection changes in the TreeView and updates the 3D view
+     * accordingly.
      */
     private void setupTreeSelectionListener() {
         ListChangeListener<TreeItem<ANode>> listener = change -> {
-            if (modelInterface.isInSelectionUpdate()) return;
+            if (modelInterface.isInSelectionUpdate()) {
+                return;
+            }
 
             modelInterface.getSelectedFileIds().clear();
             for (TreeItem<ANode> item : controller.getActiveTreeView().getSelectionModel().getSelectedItems()) {
@@ -134,17 +137,31 @@ public class WindowPresenter {
      * Wires up all buttons in the GUI to their corresponding event logic.
      */
     private void setupButtonHandlers() {
-        controller.getExpandButton().setOnAction(e -> expandSelected());
-        controller.getMenuLoadFiles().setOnAction(e -> promptUserToSelectModelDirectory());
-        controller.getCollapseButton().setOnAction(e -> collapseSelected());
-        controller.getSelectButton().setOnAction(e -> selectAllDescendants());
-        controller.getAISearchButton().setOnAction(e -> handleAISearch());
-        controller.getDeselectButton().setOnAction(e ->
-                controller.getActiveTreeView().getSelectionModel().clearSelection());
+// === Tree Interaction Buttons ===
 
-        /*controller.getShowButton().setOnAction(e -> handleShow());*/
-        /*controller.getHideButton().setOnAction(e ->
-                modelInterface.hideModels(controller.getActiveTreeView().getSelectionModel().getSelectedItems()));*/
+// Expands the selected node(s) in the TreeView to show child elements
+        controller.getExpandButton().setOnAction(e -> expandSelected());
+
+// Collapses the selected node(s) in the TreeView to hide child elements
+        controller.getCollapseButton().setOnAction(e -> collapseSelected());
+
+// Selects all descendant nodes (children, grandchildren, etc.) of the selected item
+        controller.getSelectButton().setOnAction(e -> selectAllDescendants());
+
+// Clears any current selection in the TreeView
+        controller.getDeselectButton().setOnAction(e
+                -> controller.getActiveTreeView().getSelectionModel().clearSelection()
+        );
+
+// === File Management ===
+// Prompts the user to select a model directory and loads all 3D model files from it
+        controller.getMenuLoadFiles().setOnAction(e -> promptUserToSelectModelDirectory());
+
+// === AI Search ===
+// Performs a natural-language AI-based search over anatomical terms
+        controller.getAISearchButton().setOnAction(e -> handleAISearch());
+
+        //show selected items
         controller.getShowButton().setOnAction(e -> {
             // ⛔ Important: capture current visible state BEFORE changing it!
             Set<String> beforeVisible = new HashSet<>(modelInterface.getCurrentlyVisibleFileIds());
@@ -159,9 +176,6 @@ public class WindowPresenter {
                     .filter(Objects::nonNull)
                     .flatMap(anode -> anode.fileIds().stream())
                     .collect(Collectors.toSet());
-
-
-
 
             // === Add Undo/Redo Command ===
             undoRedoManager.add(new SimpleCommand("Show Models",
@@ -185,7 +199,7 @@ public class WindowPresenter {
             refreshViewLayout();
         });
 
-
+        // hide selected objects
         controller.getHideButton().setOnAction(e -> {
             List<TreeItem<ANode>> selectedItems = new ArrayList<>(
                     controller.getActiveTreeView().getSelectionModel().getSelectedItems());
@@ -223,54 +237,88 @@ public class WindowPresenter {
             refreshViewLayout();
         });
 
+        // Set up an action listener on the ColorPicker in the UI
         controller.getColorPicker().setOnAction(e -> {
+
+            //  Step 1: Get the new color selected by the user
             Color newColor = controller.getColorPicker().getValue();
 
-            // Save old colors per fileId
+            //  Step 2: Capture current (old) colors for all selected file IDs
+            // This will be used to restore the previous state during an undo
             Map<String, Color> oldColorMap = modelInterface.getCurrentColorsForSelected();
 
-            // Build new color map with same fileIds but new color
+            //  Step 3: Build a map assigning the new color to the same file IDs
+            // This is needed to apply the new state and for redo support
             Map<String, Color> newColorMap = new HashMap<>();
             for (String fileId : oldColorMap.keySet()) {
                 newColorMap.put(fileId, newColor);
             }
 
-            // Register Undo/Redo
+            //  Step 4: Register this change with the UndoRedoManager
+            // A SimpleCommand is created with undo and redo logic
             undoRedoManager.add(new SimpleCommand("Color Change",
+                    // Undo logic: revert to previous colors and update the ColorPicker UI
                     () -> {
                         modelInterface.applyColorsFromMap(oldColorMap);
-                        controller.getColorPicker().setValue(oldColorMap.values().stream().findFirst().orElse(Color.rgb(200, 200, 200)));
+
+                        // Optional: reset the color picker value to match the undone color
+                        Color oldRepresentativeColor = oldColorMap.values().stream()
+                                .findFirst().orElse(Color.rgb(200, 200, 200)); // fallback color
+                        controller.getColorPicker().setValue(oldRepresentativeColor);
                     },
+                    // Redo logic: reapply the new colors and update the ColorPicker UI
                     () -> {
                         modelInterface.applyColorsFromMap(newColorMap);
                         controller.getColorPicker().setValue(newColor);
                     }
             ));
 
-            // Apply color now
+            // 🔸 Step 5: Apply the new color immediately to the selected models
             modelInterface.applyColorsFromMap(newColorMap);
         });
 
+// === Search Button Event Handlers ===
+// When "Find" button is clicked or Enter is pressed in the search field
         controller.getFindButton().setOnAction(e -> handleFind());
+        controller.getSearchTextField().setOnAction(e -> handleFind()); // Pressing Enter triggers the same
+
+// Navigate to the first match found in the search
         controller.getFirstButton().setOnAction(e -> handleFirst());
+
+// Navigate to the next match in the current search results
         controller.getNextButton().setOnAction(e -> handleNext());
+
+// Select and highlight all matches for the search query
         controller.getAllButton().setOnAction(e -> handleAll());
 
-        controller.getSearchTextField().setOnAction(e -> handleFind());
-
+// === Undo/Redo Event Handlers ===
+// Click on Undo button → undo the last command via UndoRedoManager
         controller.getUndoButton().setOnAction(e -> undoRedoManager.undo());
+
+// Click on Redo button → redo the last undone command
         controller.getRedoButton().setOnAction(e -> undoRedoManager.redo());
 
+// === Undo/Redo Button Enable Bindings ===
+// Disable the Undo button if there's nothing to undo
         controller.getUndoButton().disableProperty().bind(undoRedoManager.canUndoProperty().not());
+
+// Disable the Redo button if there's nothing to redo
         controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
 
+        // Set up the explode button to animate the "exploding" or reassembling of 3D model parts
         controller.getExplodeButton().setOnAction(e -> {
+
+            // If the model is not currently exploded, perform the explode + reassemble animation
             if (!isExploded) {
+
+                // Clear previously stored original positions
                 originalPositions.clear();
 
+                // Prepare lists to store animations for explosion and reassembly
                 List<TranslateTransition> explodeAnimations = new ArrayList<>();
                 List<TranslateTransition> assembleAnimations = new ArrayList<>();
 
+                // Calculate the global center of the entire 3D model group
                 Bounds bounds = modelInterface.getInnerGroup().getLayoutBounds();
                 Point3D globalCenter = new Point3D(
                         (bounds.getMinX() + bounds.getMaxX()) / 2,
@@ -278,12 +326,18 @@ public class WindowPresenter {
                         (bounds.getMinZ() + bounds.getMaxZ()) / 2
                 );
 
-                double explodeFactor = 1.5;
+                double explodeFactor = 1.5; // Controls how far each part explodes from the center
 
+                // Loop through each node (anatomical part) in the 3D group
                 for (Node node : modelInterface.getInnerGroup().getChildren()) {
-                    Point3D original = new Point3D(node.getTranslateX(), node.getTranslateY(), node.getTranslateZ());
+
+                    // Save the original translation (position) of the node
+                    Point3D original = new Point3D(
+                            node.getTranslateX(), node.getTranslateY(), node.getTranslateZ()
+                    );
                     originalPositions.put(node, original);
 
+                    // Compute the node's center in the scene
                     Bounds nodeBounds = node.getBoundsInParent();
                     Point3D nodeCenter = new Point3D(
                             (nodeBounds.getMinX() + nodeBounds.getMaxX()) / 2,
@@ -291,14 +345,21 @@ public class WindowPresenter {
                             (nodeBounds.getMinZ() + nodeBounds.getMaxZ()) / 2
                     );
 
+                    // Get direction vector from global center to node center
                     Point3D direction = nodeCenter.subtract(globalCenter);
+
+                    // Avoid zero-length vectors by introducing a random small direction
                     if (direction.magnitude() == 0) {
-                        direction = new Point3D(Math.random(), Math.random(), Math.random()); // avoid zero vector
+                        direction = new Point3D(Math.random(), Math.random(), Math.random());
                     }
+
+                    // Normalize the direction to unit length
                     direction = direction.normalize();
 
-                    Point3D offset = direction.multiply(explodeFactor * 120); // 100 is an arbitrary base offset
+                    // Multiply by a constant to determine how far to "explode" this part
+                    Point3D offset = direction.multiply(explodeFactor * 120); // 120 is base offset
 
+                    // Create explode animation for this node
                     TranslateTransition explode = new TranslateTransition(Duration.seconds(1.2), node);
                     explode.setByX(offset.getX());
                     explode.setByY(offset.getY());
@@ -306,6 +367,7 @@ public class WindowPresenter {
                     explode.setInterpolator(Interpolator.EASE_OUT);
                     explodeAnimations.add(explode);
 
+                    // Create matching assemble animation to restore the original position
                     TranslateTransition assemble = new TranslateTransition(Duration.seconds(1.2), node);
                     assemble.setToX(original.getX());
                     assemble.setToY(original.getY());
@@ -314,20 +376,32 @@ public class WindowPresenter {
                     assembleAnimations.add(assemble);
                 }
 
+                // Add a short pause between explosion and reassembly
                 PauseTransition pause = new PauseTransition(Duration.seconds(1.5));
 
+                // Combine all explode animations into one parallel animation
                 ParallelTransition explodeAll = new ParallelTransition();
                 explodeAll.getChildren().addAll(explodeAnimations);
 
+                // Combine all assemble animations into one parallel animation
                 ParallelTransition assembleAll = new ParallelTransition();
                 assembleAll.getChildren().addAll(assembleAnimations);
 
+                // Create a sequence: explode → pause → assemble
                 SequentialTransition sequence = new SequentialTransition(explodeAll, pause, assembleAll);
+
+                // After reassembly, mark model as not exploded
                 sequence.setOnFinished(event -> isExploded = false);
+
+                // Play the full sequence
                 sequence.play();
+
+                // Temporarily mark as exploded to block button from repeating
                 isExploded = true;
 
             } else {
+                // If the model is already exploded, skip animation and just reassemble
+
                 for (Node node : modelInterface.getInnerGroup().getChildren()) {
                     Point3D original = originalPositions.getOrDefault(node, new Point3D(0, 0, 0));
 
@@ -342,7 +416,6 @@ public class WindowPresenter {
                 isExploded = false;
             }
         });
-
 
     }
 
@@ -364,7 +437,6 @@ public class WindowPresenter {
     }
 
     // === Tree Expand/Collapse/Selection ===
-
     /**
      * Expands all descendants of currently selected nodes.
      */
@@ -415,7 +487,6 @@ public class WindowPresenter {
     }
 
     // === 3D Visualization Handling ===
-
     /**
      * Handles showing selected models in the 3D scene.
      */
@@ -461,7 +532,6 @@ public class WindowPresenter {
     /**
      * Initializes the 3D scene including camera, lighting, and interaction.
      */
-
     private void setup3DScene() {
         if (subScene == null) {
             if (!contentGroup.getChildren().contains(innerGroup)) {
@@ -497,13 +567,20 @@ public class WindowPresenter {
             subScene.setOnKeyPressed(e -> {
                 KeyCode code = e.getCode();
                 switch (code) {
-                    case Z -> interactionHandler.resetTransform();
-                    case I -> interactionHandler.zoom(50);
-                    case O -> interactionHandler.zoom(-50);
-                    case LEFT -> interactionHandler.rotateY(-10);
-                    case RIGHT -> interactionHandler.rotateY(10);
-                    case UP -> interactionHandler.rotateX(-10);
-                    case DOWN -> interactionHandler.rotateX(10);
+                    case Z ->
+                        interactionHandler.resetTransform();
+                    case I ->
+                        interactionHandler.zoom(50);
+                    case O ->
+                        interactionHandler.zoom(-50);
+                    case LEFT ->
+                        interactionHandler.rotateY(-10);
+                    case RIGHT ->
+                        interactionHandler.rotateY(10);
+                    case UP ->
+                        interactionHandler.rotateX(-10);
+                    case DOWN ->
+                        interactionHandler.rotateX(10);
                 }
             });
 
@@ -517,13 +594,9 @@ public class WindowPresenter {
         }
     }
 
-    private void hide3DScene() {
-        controller.getVisualizationPane().getChildren().clear();
-        subScene = null; // Reset so it can be rebuilt later
-    }
+
 
     // === Search Delegates ===
-
     public void handleFind() {
         String query = controller.getSearchTextField().getText();
         searchHandler.search(query);
@@ -544,9 +617,6 @@ public class WindowPresenter {
         searchHandler.selectAll(query);
     }
 
-
-
-
     private void refreshViewLayout() {
         setup3DScene(); // only creates it if needed
         Platform.runLater(() -> {
@@ -558,15 +628,6 @@ public class WindowPresenter {
     }
 
 
-
-    private Point3D getGroupCenter(Group group) {
-        Bounds bounds = group.getBoundsInParent();
-        return new Point3D(
-                (bounds.getMinX() + bounds.getMaxX()) / 2.0,
-                (bounds.getMinY() + bounds.getMaxY()) / 2.0,
-                (bounds.getMinZ() + bounds.getMaxZ()) / 2.0
-        );
-    }
 
     public void handleAISearch() {
         String query = controller.getSearchTextField().getText();
@@ -603,7 +664,6 @@ public class WindowPresenter {
             }
         }
     }
-
 
     private void runRegexSearchFlow(String query, List<String> leafLabels) {
         AIRegexTask task = new AIRegexTask(query, leafLabels);
@@ -678,7 +738,6 @@ public class WindowPresenter {
             }
         }).start();
     }
-
 
     private List<TreeItem<ANode>> findMatchingTreeItems(String term) {
         List<TreeItem<ANode>> result = new ArrayList<>();

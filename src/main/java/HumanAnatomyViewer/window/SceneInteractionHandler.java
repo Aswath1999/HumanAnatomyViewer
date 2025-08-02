@@ -110,11 +110,11 @@ public class SceneInteractionHandler {
         Point3D direction = center.subtract(camPos).normalize();
 
         double minDistance = 50;
-        double maxDistance = 2000;
+        double maxDistance = 10000; // or even higher depending on your scene size
 
         double currentDistance = center.distance(camPos);
         double newDistance = currentDistance - zoomAmount;
-
+        System.out.println("Current distance: " + currentDistance + ", Requested zoom: " + zoomAmount + ", New distance: " + newDistance);
         if (newDistance < minDistance || newDistance > maxDistance) return;
 
         Point3D newPos = camPos.add(direction.multiply(zoomAmount));
@@ -128,6 +128,7 @@ public class SceneInteractionHandler {
      */
     private Point3D getContentCenter() {
         var bounds = contentGroup.getLayoutBounds();
+        System.out.println("Content bounds: " + bounds);
         return new Point3D(
                 (bounds.getMinX() + bounds.getMaxX()) / 2.0,
                 (bounds.getMinY() + bounds.getMaxY()) / 2.0,

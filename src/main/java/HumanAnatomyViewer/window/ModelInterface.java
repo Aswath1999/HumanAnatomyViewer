@@ -139,16 +139,27 @@ public class ModelInterface {
 
 
 
+    /**
+     * Retrieves a set of file IDs corresponding to currently visible anatomical models
+     * @return a Set of String IDs representing all currently visible model nodes
+     */
     public Set<String> getCurrentlyVisibleFileIds() {
+        // Stream all children of the innerGroup (e.g., anatomical 3D models)
         Set<String> ids = innerGroup.getChildren().stream()
+                // Extract user data from each node (assumed to contain a file ID)
                 .map(Node::getUserData)
+                // Skip any nodes that don't have user data
                 .filter(Objects::nonNull)
+                // Convert the user data to string (assumed to be the file ID)
                 .map(Object::toString)
+                // Collect all the IDs into a Set (no duplicates)
                 .collect(Collectors.toSet());
+
+        // Debug output to print the collected visible file IDs
         System.out.println("Visible File IDs: " + ids);
+
         return ids;
     }
-
 
 
     /**
@@ -303,18 +314,6 @@ public class ModelInterface {
         }
     }
 
-    /**
-     * Applies a color to all selected and filled 3D models.
-     * @param color The JavaFX Color to apply
-     */
-    public void applyColorToSelected(Color color) {
-        for (String fileId : selectedFileIds) {
-            Group group = loadedModels.get(fileId);
-            if (group != null) {
-                applyColorToFilledShapes(group, color);
-            }
-        }
-    }
 
     /**
      * Recursively applies a color to all Shape3D nodes with FILL mode inside a group.
@@ -336,38 +335,44 @@ public class ModelInterface {
     }
 
 
-    public Color getFirstSelectedColor() {
-        for (String fileId : selectedFileIds) {
-            Group group = loadedModels.get(fileId);
-            if (group != null) {
-                for (var node : group.getChildren()) {
-                    if (node instanceof Shape3D shape && shape.getDrawMode() == DrawMode.FILL) {
-                        if (shape.getMaterial() instanceof PhongMaterial phong) {
-                            return phong.getDiffuseColor();
-                        }
-                    }
-                }
-            }
-        }
-        return Color.GRAY; // default fallback if none found
-    }
 
+    /**
+     * Retrieves the currently assigned fill color (diffuse color) for each selected anatomical model.
+     * The method checks the `selectedFileIds` set and attempts to find a representative fill color from each associated 3D model (represented as a Group). It uses the first Shape3D node
+     * with `DrawMode.FILL` and a `PhongMaterial` to extract the color.
+     * @return a map where each key is a file ID and the value is its corresponding Color.
+     */
     public Map<String, Color> getCurrentColorsForSelected() {
+        // Map to hold fileId → current Color
         Map<String, Color> colorMap = new HashMap<>();
 
+        // Loop through all currently selected file IDs
         for (String fileId : selectedFileIds) {
+            // Get the root Group node that represents the 3D model
             Group group = loadedModels.get(fileId);
+
             if (group != null) {
+                // Inspect each child node inside the model group
                 for (var node : group.getChildren()) {
+
+                    // Check if the node is a Shape3D (e.g., MeshView or Box)
+                    // and that it uses solid fill mode (not wireframe)
                     if (node instanceof Shape3D shape && shape.getDrawMode() == DrawMode.FILL) {
+
+                        // Check if the shape uses a PhongMaterial, which supports color
                         if (shape.getMaterial() instanceof PhongMaterial phong) {
+                            // Extract the diffuse color and store it
                             colorMap.put(fileId, phong.getDiffuseColor());
-                            break; // Only need one representative color
+
+                            // Since we only need one color per model, break after the first match
+                            break;
                         }
                     }
                 }
             }
         }
+
+        // Return the collected mapping of file IDs to colors
         return colorMap;
     }
 
