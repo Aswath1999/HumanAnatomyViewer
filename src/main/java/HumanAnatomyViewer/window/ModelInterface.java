@@ -98,43 +98,63 @@ public class ModelInterface {
         applyDrawModeBasedOnSelection();
     }
 
+    /**
+     * Loads and displays 3D models based on a given set of file IDs.
+     *
+     * This method:
+     * 1. Clears the current 3D view.
+     * 2. Updates the set of selected file IDs.
+     * 3. Loads each model if not already cached.
+     * 4. Attaches interaction handlers and adds models to the scene.
+     * 5. Applies visual highlighting to indicate selection.
+     *
+     * @param fileIds A collection of file IDs representing 3D models to display.
+     */
     public void loadAndDisplayModelsByFileIds(Collection<String> fileIds) {
 
-
-        // Step 1: Clear previous display
+        // === Step 1: Clear previous display ===
+        // Remove all previously displayed 3D models from the group
         innerGroup.getChildren().clear();
+
+        // Clear all transformations like rotation, scale, or translation
         innerGroup.getTransforms().clear();
 
-
-        // Step 2: Update selected file IDs
+        // === Step 2: Update selected file IDs ===
+        // Clear the previous selection state
         selectedFileIds.clear();
+
+        // Add the new file IDs to the selection list
         selectedFileIds.addAll(fileIds);
 
-
-        // Step 3: Load and display each model
+        // === Step 3: Load and display each model ===
         for (String fileId : fileIds) {
-
-
+            // Load the model if it's not already loaded (from cache or file)
             Group modelGroup = loadModelIfAbsent(fileId);
-            if (modelGroup != null) {
-                // Remove just in case it was already in (paranoia check)
-                if (innerGroup.getChildren().contains(modelGroup)) {
 
+            if (modelGroup != null) {
+                // Remove the group just in case it's already in the scene
+                // (safety check to avoid duplicate rendering)
+                if (innerGroup.getChildren().contains(modelGroup)) {
                     innerGroup.getChildren().remove(modelGroup);
                 }
 
+                // Add click handler to enable interactivity (e.g., selection or tooltip)
                 applyClickHandler(modelGroup, fileId);
-                innerGroup.getChildren().add(modelGroup);
-                modelGroup.setUserData(fileId); // ✅ Attach file ID to top-level group
 
+                // Add the loaded model group to the 3D scene graph
+                innerGroup.getChildren().add(modelGroup);
+
+                // Attach the file ID to the model group for reference (e.g., selection tracking)
+                modelGroup.setUserData(fileId); // ✅ Helps identify the model later
             } else {
+                // Log an error if the model could not be loaded
                 System.out.println("❌ Could not load model: " + fileId);
             }
         }
 
-        // Step 4: Apply visual highlighting
+        // === Step 4: Apply visual highlighting (draw modes) based on selection ===
+        // This might apply wireframe/fill mode or color overlays to selected items
         applyDrawModeBasedOnSelection();
-
     }
 
 
@@ -376,12 +396,24 @@ public class ModelInterface {
         return colorMap;
     }
 
+    /**
+     * Applies the specified colors to the 3D models identified by their file IDs.
+     *
+     * Each file ID maps to a Group (3D model), and the provided Color is applied
+     * to all fillable shapes within that group using the helper method `applyColorToFilledShapes()`.
+     *
+     * @param colorMap A map where the key is a file ID and the value is the Color to apply.
+     */
     public void applyColorsFromMap(Map<String, Color> colorMap) {
+        // Iterate over each fileId-color pair
         for (Map.Entry<String, Color> entry : colorMap.entrySet()) {
-            String fileId = entry.getKey();
-            Color color = entry.getValue();
+            String fileId = entry.getKey();     // The identifier for the 3D model
+            Color color = entry.getValue();     // The color to apply to this model
 
+            // Retrieve the 3D model group associated with this file ID
             Group group = loadedModels.get(fileId);
+
+            // If the model group exists (has been loaded), apply the color
             if (group != null) {
                 applyColorToFilledShapes(group, color);
             }
@@ -409,11 +441,6 @@ public class ModelInterface {
     }
 
 
-    public void hideModelsByFileIds(Collection<String> fileIds) {
-        for (String fileId : fileIds) {
-            innerGroup.getChildren().remove(loadedModels.get(fileId));
-        }
-    }
 
 
     public void setCustomDirectory(File directory) {

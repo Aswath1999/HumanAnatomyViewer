@@ -140,28 +140,28 @@ public class WindowPresenter {
      * Wires up all buttons in the GUI to their corresponding event logic.
      */
     private void setupButtonHandlers() {
-// === Tree Interaction Buttons ===
+        // === Tree Interaction Buttons ===
 
-// Expands the selected node(s) in the TreeView to show child elements
+        // Expands the selected node(s) in the TreeView to show child elements
         controller.getExpandButton().setOnAction(e -> expandSelected());
 
-// Collapses the selected node(s) in the TreeView to hide child elements
+        // Collapses the selected node(s) in the TreeView to hide child elements
         controller.getCollapseButton().setOnAction(e -> collapseSelected());
 
-// Selects all descendant nodes (children, grandchildren, etc.) of the selected item
+        // Selects all descendant nodes (children, grandchildren, etc.) of the selected item
         controller.getSelectButton().setOnAction(e -> selectAllDescendants());
 
-// Clears any current selection in the TreeView
+        // Clears any current selection in the TreeView
         controller.getDeselectButton().setOnAction(e
                 -> controller.getActiveTreeView().getSelectionModel().clearSelection()
         );
 
-// === File Management ===
-// Prompts the user to select a model directory and loads all 3D model files from it
+        // === File Management ===
+        // Prompts the user to select a model directory and loads all 3D model files from it
         controller.getMenuLoadFiles().setOnAction(e -> promptUserToSelectModelDirectory());
 
-// === AI Search ===
-// Performs a natural-language AI-based search over anatomical terms
+        // === AI Search ===
+        // Performs a natural-language AI-based search over anatomical terms
         controller.getAISearchButton().setOnAction(e -> handleAISearch());
 
         //show selected items
@@ -280,32 +280,32 @@ public class WindowPresenter {
             modelInterface.applyColorsFromMap(newColorMap);
         });
 
-// === Search Button Event Handlers ===
-// When "Find" button is clicked or Enter is pressed in the search field
+        // === Search Button Event Handlers ===
+        // When "Find" button is clicked or Enter is pressed in the search field
         controller.getFindButton().setOnAction(e -> handleFind());
         controller.getSearchTextField().setOnAction(e -> handleFind()); // Pressing Enter triggers the same
 
-// Navigate to the first match found in the search
+        // Navigate to the first match found in the search
         controller.getFirstButton().setOnAction(e -> handleFirst());
 
-// Navigate to the next match in the current search results
+        // Navigate to the next match in the current search results
         controller.getNextButton().setOnAction(e -> handleNext());
 
-// Select and highlight all matches for the search query
+        // Select and highlight all matches for the search query
         controller.getAllButton().setOnAction(e -> handleAll());
 
-// === Undo/Redo Event Handlers ===
-// Click on Undo button → undo the last command via UndoRedoManager
+        // === Undo/Redo Event Handlers ===
+        // Click on Undo button → undo the last command via UndoRedoManager
         controller.getUndoButton().setOnAction(e -> undoRedoManager.undo());
 
-// Click on Redo button → redo the last undone command
+        // Click on Redo button → redo the last undone command
         controller.getRedoButton().setOnAction(e -> undoRedoManager.redo());
 
-// === Undo/Redo Button Enable Bindings ===
-// Disable the Undo button if there's nothing to undo
+        // === Undo/Redo Button Enable Bindings ===
+        // Disable the Undo button if there's nothing to undo
         controller.getUndoButton().disableProperty().bind(undoRedoManager.canUndoProperty().not());
 
-// Disable the Redo button if there's nothing to redo
+        // Disable the Redo button if there's nothing to redo
         controller.getRedoButton().disableProperty().bind(undoRedoManager.canRedoProperty().not());
 
         // Set up the explode button to animate the "exploding" or reassembling of 3D model parts
@@ -605,49 +605,86 @@ public class WindowPresenter {
 
 
     // === Search Delegates ===
+
+    /**
+     * Handles the 'Find' action — searches the tree for matches based on the current query.
+     * The matches are highlighted but not necessarily selected or focused.
+     */
     public void handleFind() {
         String query = controller.getSearchTextField().getText();
-        searchHandler.search(query);
+        searchHandler.search(query); // triggers regex or exact match based on internal logic
     }
 
+    /**
+     * Handles the 'First' button action — focuses the first match in the tree.
+     */
     public void handleFirst() {
         String query = controller.getSearchTextField().getText();
-        searchHandler.showFirst(query);
+        searchHandler.showFirst(query); // scrolls to and selects the first matched item
     }
 
+    /**
+     * Handles the 'Next' button action — moves selection to the next match in the result list.
+     */
     public void handleNext() {
         String query = controller.getSearchTextField().getText();
-        searchHandler.showNext(query);
+        searchHandler.showNext(query); // continues stepping through matches
     }
 
+    /**
+     * Handles the 'Select All' action — selects all matches found for the query.
+     */
     public void handleAll() {
         String query = controller.getSearchTextField().getText();
-        searchHandler.selectAll(query);
+        searchHandler.selectAll(query); // selects all matching TreeItems
     }
 
+    /**
+     * Refreshes the layout of the 3D view.
+     * - Ensures the scene is set up
+     * - Applies CSS styles
+     * - Recalculates layout
+     * - Re-centers the content group
+     * - Adjusts the camera based on scene bounds
+     */
     private void refreshViewLayout() {
-        setup3DScene(); // only creates it if needed
+        setup3DScene(); // Initializes the 3D scene if not already set
+
+        // Make sure all layout updates and camera movements run on the JavaFX Application Thread
         Platform.runLater(() -> {
-            innerGroup.applyCss();
-            innerGroup.layout();
-            centerContentGroup();
-            autoAdjustCamera();
+            innerGroup.applyCss();    // Apply any pending CSS styling
+            innerGroup.layout();      // Recalculate layout bounds
+            centerContentGroup();     // Move content group to center of visible area
+            autoAdjustCamera();       // Adjust camera distance and angle based on scene bounds
         });
     }
 
 
 
+    /**
+     * Entry point for AI-assisted search triggered from the UI.
+     * - Reads user input from the search bar.
+     * - Determines if the query is for color suggestion or regex search.
+     * - Collects all leaf labels from the TreeView.
+     * - Delegates to the appropriate search flow.
+     */
     public void handleAISearch() {
+        // Get the text input from the search bar
         String query = controller.getSearchTextField().getText();
+
+        // If query is empty or missing, show a warning and exit early
         if (query == null || query.isBlank()) {
             controller.getSearchStatusLabel().setText("Please enter a query.");
             return;
         }
 
+        // Collect all lowercase leaf labels from the currently active TreeView
         List<String> leafLabels = getLeafLabelsFromTree(controller.getActiveTreeView());
 
+        // Determine if the query is related to coloring (via regex match on keywords)
         boolean isColorQuery = query.toLowerCase().matches(".*\\b(color|paint|fill)\\b.*");
 
+        // Call the appropriate AI-assisted flow based on the query type
         if (isColorQuery) {
             runColorSuggestionFlow(query, leafLabels);
         } else {
@@ -655,108 +692,200 @@ public class WindowPresenter {
         }
     }
 
+    /**
+     * Traverses the TreeView and extracts all the leaf node labels (names).
+     *
+     * @param tree The TreeView containing anatomical structures
+     * @return A list of lowercase leaf labels
+     */
     private List<String> getLeafLabelsFromTree(TreeView<ANode> tree) {
         List<String> labels = new ArrayList<>();
-        collectLeafLabels(tree.getRoot(), labels);
+        collectLeafLabels(tree.getRoot(), labels); // Start recursive collection
         return labels;
     }
 
+    /**
+     * Recursively walks through the tree to collect all leaf node labels.
+     *
+     * @param item Current TreeItem in the traversal
+     * @param list List to accumulate lowercase labels of leaf nodes
+     */
     private void collectLeafLabels(TreeItem<ANode> item, List<String> list) {
+        // Base case: if this item has no children, it's a leaf
         if (item.getChildren().isEmpty()) {
+            // Make sure the node has a valid name before adding
             if (item.getValue() != null && item.getValue().name() != null) {
                 list.add(item.getValue().name().toLowerCase());
             }
         } else {
+            // Recursive case: visit all children
             for (TreeItem<ANode> child : item.getChildren()) {
                 collectLeafLabels(child, list);
             }
         }
     }
 
+    /**
+     * Executes an AI-powered regex search flow:
+     * - Sends the user's natural language query and label list to an AI task.
+     * - Uses the returned regex to search the TreeView for matches.
+     * - Selects all matched nodes and updates the UI status label accordingly.
+     *
+     * @param query      The user's natural language search input (e.g., "nerves in the leg")
+     * @param leafLabels A list of all anatomical term labels (usually from leaf nodes of the hierarchy)
+     */
     private void runRegexSearchFlow(String query, List<String> leafLabels) {
+        // Create a background task to request regex from AI using the given query and terms
         AIRegexTask task = new AIRegexTask(query, leafLabels);
 
+        // === What to do when the AI task completes successfully ===
         task.setOnSucceeded(e -> {
+            // Retrieve the regex string produced by the AI
             String regex = task.getValue();
+
+            // If the AI failed to produce a regex, show error and return
             if (regex == null || regex.isEmpty()) {
                 controller.getSearchStatusLabel().setText("❌ No regex returned from AI.");
                 return;
             }
 
+            // Perform the regex-based search in the TreeView
             boolean success = searchHandler.search(regex);
+
             if (success) {
+                // If matches found, select all matching nodes and notify user
                 searchHandler.selectAll(regex);
                 controller.getSearchStatusLabel().setText("✅ Found and selected matches.");
             } else {
+                // If regex is valid but no matches were found
                 controller.getSearchStatusLabel().setText("⚠ AI returned regex, but no matches found.");
             }
         });
 
+        // === What to do if the AI task fails (e.g., network error, exception) ===
         task.setOnFailed(e -> {
+            // Show failure message to user
             controller.getSearchStatusLabel().setText("❌ AI search failed.");
+
+            // Log the exception stack trace for debugging
             task.getException().printStackTrace();
         });
 
+        // Run the task in a background thread to keep the UI responsive
         new Thread(task).start();
     }
 
+    /**
+     * Handles the full AI color suggestion workflow:
+     * - Sends a natural language query and anatomical terms to the AI.
+     * - Receives a map of terms to HEX color codes.
+     * - Matches terms to TreeItems and file IDs.
+     * - Applies the colors to the appropriate models and updates the UI.
+     *
+     * @param query      The user input (e.g., "color the brain red and nerves blue")
+     * @param leafLabels The list of all available anatomical terms (usually leaf nodes of the tree)
+     */
     private void runColorSuggestionFlow(String query, List<String> leafLabels) {
+        // Run the network request in a background thread to avoid freezing the UI
         new Thread(() -> {
             try {
+                // Send query to AI and get a map of term -> HEX color string
                 Map<String, String> colorMap = AISearchService.getColorMapFromQuery(query, leafLabels);
 
+                // If nothing matched, inform the user and exit early
                 if (colorMap.isEmpty()) {
-                    Platform.runLater(() -> controller.getSearchStatusLabel().setText("⚠ No color matches found."));
+                    Platform.runLater(() ->
+                            controller.getSearchStatusLabel().setText("⚠ No color matches found.")
+                    );
                     return;
                 }
 
+                // Run the color application logic on the JavaFX Application Thread
                 Platform.runLater(() -> {
+                    // This map will store file IDs and their corresponding Color values
                     Map<String, Color> fileIdToColor = new HashMap<>();
 
+                    // Loop through each matched term and its assigned HEX color
                     for (Map.Entry<String, String> entry : colorMap.entrySet()) {
-                        String term = entry.getKey().toLowerCase();
-                        String hex = entry.getValue();
+                        String term = entry.getKey().toLowerCase(); // Normalize term
+                        String hex = entry.getValue();              // e.g., "#FF0000"
 
-                        // Select tree nodes via searchHandler
+                        // Try selecting matching nodes in the TreeView via the searchHandler
                         boolean found = searchHandler.search(term);
                         if (found) {
-                            searchHandler.selectAll(term);
+                            searchHandler.selectAll(term); // Select all matches if found
                         }
 
+                        // Find all TreeItems whose name contains the matched term
                         List<TreeItem<ANode>> matchingItems = findMatchingTreeItems(term);
+
+                        // For each matching TreeItem, extract its file IDs and assign the color
                         for (TreeItem<ANode> item : matchingItems) {
                             if (item.getValue() != null) {
                                 for (String fileId : item.getValue().fileIds()) {
-                                    fileIdToColor.put(fileId, Color.web(hex));
+                                    fileIdToColor.put(fileId, Color.web(hex)); // Convert HEX to Color
                                 }
                             }
                         }
                     }
 
+                    // Load the relevant 3D models for the selected file IDs if not already loaded
                     modelInterface.loadAndDisplayModelsByFileIds(fileIdToColor.keySet());
+
+                    // Apply the selected color to each corresponding file ID
                     modelInterface.applyColorsFromMap(fileIdToColor);
+
+                    // Sync the TreeView selection based on which models were affected
                     modelInterface.syncTreeSelectionFromFileIds();
+
+                    // Refresh layout in case things moved, scaled, or need redraw
                     refreshViewLayout();
+
+                    // Notify the user that the operation succeeded
                     controller.getSearchStatusLabel().setText("🎨 Applied AI-suggested colors.");
                 });
 
             } catch (Exception e) {
-                Platform.runLater(() -> controller.getSearchStatusLabel().setText("❌ AI color suggestion failed."));
+                // Catch any failure in the background thread and report it on the UI thread
+                Platform.runLater(() ->
+                        controller.getSearchStatusLabel().setText("❌ AI color suggestion failed.")
+                );
                 e.printStackTrace();
             }
-        }).start();
+        }).start(); // Start background thread
     }
 
+    /**
+     * Finds all TreeItems in the active TreeView whose ANode name contains the given search term (case-insensitive).
+     *
+     * @param term The lowercase search string to match against node names.
+     * @return A list of TreeItems whose associated ANode name contains the term.
+     */
     private List<TreeItem<ANode>> findMatchingTreeItems(String term) {
+        // Create a list to store matching nodes
         List<TreeItem<ANode>> result = new ArrayList<>();
+
+        // Start recursive search from the root of the currently active tree
         matchTreeItems(controller.getActiveTreeView().getRoot(), term, result);
+
+        // Return the list of matches
         return result;
     }
 
+    /**
+     * Recursively searches a TreeItem hierarchy to find all nodes whose names contain the search term.
+     *
+     * @param node   The current TreeItem node being visited.
+     * @param term   The lowercase search term.
+     * @param result The list where matching TreeItems are collected.
+     */
     private void matchTreeItems(TreeItem<ANode> node, String term, List<TreeItem<ANode>> result) {
+        // Check if node value is non-null and name contains the search term (case-insensitive)
         if (node.getValue() != null && node.getValue().name().toLowerCase().contains(term)) {
-            result.add(node);
+            result.add(node); // Add matching node to result
         }
+
+        // Recursively check all child nodes
         for (TreeItem<ANode> child : node.getChildren()) {
             matchTreeItems(child, term, result);
         }
