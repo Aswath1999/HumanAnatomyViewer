@@ -11,13 +11,19 @@ import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.geometry.Point3D;
 import javafx.scene.*;
+
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
+
 import javafx.scene.paint.Color;
+
 import javafx.scene.transform.Translate;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -424,6 +430,28 @@ public class WindowPresenter {
         //full screen
         controller.getMenuToggleFullScreen().setOnAction(e -> toggleFullScreen());
 
+        //pie chart
+        controller.getMenuShowVolumeChart().setOnAction(e -> {
+            Set<String> selectedFileIds = modelInterface.getSelectedFileIds();
+            Map<String, Group> loadedModels = modelInterface.getLoadedModels();
+
+            Map<String, String> fileIdToName = new HashMap<>();
+            for (TreeItem<ANode> item : controller.getActiveTreeView().getSelectionModel().getSelectedItems()) {
+                if (item.getValue() != null) {
+                    for (String fileId : item.getValue().fileIds()) {
+                        fileIdToName.put(fileId, item.getValue().name());
+                    }
+                }
+            }
+
+            VolumeChartHelper.showSelectedPartsVolumeChart(
+                    stage,               // ✅ use the presenter's own stage field
+                    selectedFileIds,
+                    loadedModels,
+                    fileIdToName
+            );
+        });
+    // method reference
 
     }
 
@@ -917,5 +945,13 @@ public class WindowPresenter {
                 goingFullScreen ? "Exit Full Screen" : "Show Full Screen"
         );
     }
+
+
+
+
+
+
+
+
 
 }

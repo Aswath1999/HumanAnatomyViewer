@@ -58,6 +58,8 @@ public class WindowController {
 
     public MenuItem getMenuEnableDarkMode() {return menuEnableDarkMode;}
     public MenuItem getMenuToggleFullScreen() {return menuToggleFullScreen;}
+    @FXML private MenuItem menuShowVolumeChart;
+    public MenuItem getMenuShowVolumeChart() { return menuShowVolumeChart; }
 
     private WindowPresenter presenter;
 

@@ -3,16 +3,24 @@ package HumanAnatomyViewer.window;
 import HumanAnatomyViewer.model.ANode;
 import HumanAnatomyViewer.model.ObjIO;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.geometry.Bounds;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.DrawMode;
+import javafx.scene.shape.MeshView;
 import javafx.scene.shape.Shape3D;
+import javafx.scene.shape.TriangleMesh;
+import javafx.stage.Stage;
 
 import java.io.File;
 import java.net.URL;
@@ -354,7 +362,9 @@ public class ModelInterface {
         }
     }
 
-
+    public Group getLoadedModel(String fileId) {
+        return loadedModels.get(fileId);
+    }
 
     /**
      * Retrieves the currently assigned fill color (diffuse color) for each selected anatomical model.
@@ -419,6 +429,11 @@ public class ModelInterface {
             }
         }
     }
+
+
+
+
+
 
 
 

@@ -40,6 +40,7 @@
                             <items>
                                 <MenuItem fx:id="menuToggleFullScreen" text="Show Full Screen" />
                                 <MenuItem fx:id="menuEnableDarkMode" text="Enable Dark Mode" />
+                                <MenuItem fx:id="menuShowVolumeChart" text="Show Volume Chart" />
                             </items>
                         </Menu>
                         <Menu text="Help">
