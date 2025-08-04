@@ -13,10 +13,9 @@ import javafx.scene.Scene;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.MeshView;
 import javafx.scene.shape.TriangleMesh;
 import javafx.stage.Stage;
@@ -63,7 +62,6 @@ public class VolumeChartHelper {
         pieChart.setClockwise(true);
         pieChart.setLegendVisible(false);
 
-        // === Optional Interactivity ===
         // Hover Tooltip for Volume
         for (PieChart.Data slice : pieChart.getData()) {
             Tooltip tooltip = new Tooltip(String.format("%s: %.2f mm³", slice.getName(), slice.getPieValue()));
@@ -92,16 +90,13 @@ public class VolumeChartHelper {
             slice.getNode().setOnMouseClicked(e -> {
                 for (PieChart.Data other : pieChart.getData()) {
                     other.getNode().setStyle("");
-                    other.setName("");
                 }
                 slice.getNode().setStyle("-fx-effect: dropshadow(gaussian, #333, 10, 0.6, 0, 0);");
-                slice.setName(originalLabels.get(slice));
                 selectedLabel.setText("Selected: " + originalLabels.get(slice));
                 e.consume();
             });
         }
 
-        // === Layout and Stage Setup ===
         VBox vbox = new VBox(10, pieChart, selectedLabel);
         vbox.setPadding(new Insets(20));
         VBox.setVgrow(pieChart, Priority.ALWAYS);
@@ -109,10 +104,9 @@ public class VolumeChartHelper {
 
         Scene scene = new Scene(vbox, 800, 700);
 
-        // Global click to restore all labels
-        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED, e -> {
+        // Global click to restore all styles and label text
+        scene.addEventFilter(MouseEvent.MOUSE_CLICKED, e -> {
             for (PieChart.Data slice : pieChart.getData()) {
-                slice.setName(originalLabels.get(slice));
                 slice.getNode().setStyle("");
             }
             selectedLabel.setText("Click a slice to show its name");
@@ -126,9 +120,6 @@ public class VolumeChartHelper {
         chartStage.show();
     }
 
-    /**
-     * Calculates the total volume of a 3D model Group.
-     */
     private static double calculateVolume(Group group) {
         double volume = 0.0;
         for (Node node : group.getChildren()) {
@@ -139,9 +130,6 @@ public class VolumeChartHelper {
         return volume;
     }
 
-    /**
-     * Computes the volume of a TriangleMesh using signed tetrahedrons.
-     */
     private static double computeMeshVolume(TriangleMesh mesh) {
         ObservableFloatArray pointArray = mesh.getPoints();
         float[] points = new float[pointArray.size()];

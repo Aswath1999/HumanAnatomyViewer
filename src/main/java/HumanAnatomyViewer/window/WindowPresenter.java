@@ -580,7 +580,7 @@ public class WindowPresenter {
 
             // Add lights if not present
             if (root3D.getChildren().stream().noneMatch(n -> n instanceof PointLight || n instanceof AmbientLight)) {
-                PointLight pointLight = new PointLight(Color.GRAY);
+                PointLight pointLight = new PointLight(Color.DARKGRAY);
                 pointLight.setTranslateX(-500);
                 pointLight.setTranslateY(-500);
                 pointLight.setTranslateZ(-500);
@@ -597,7 +597,7 @@ public class WindowPresenter {
             // Create and configure the SubScene
             subScene = new SubScene(root3D, 800, 800, true, SceneAntialiasing.BALANCED);
             subScene.setCamera(camera);
-            subScene.setFill(Color.rgb(200, 200, 200));
+            subScene.setFill(Color.rgb(86, 165, 194));
             subScene.setOnMouseClicked(e -> subScene.requestFocus());
 
             subScene.setOnKeyPressed(e -> {

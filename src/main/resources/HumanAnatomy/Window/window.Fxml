@@ -43,11 +43,7 @@
                                 <MenuItem fx:id="menuShowVolumeChart" text="Show Volume Chart" />
                             </items>
                         </Menu>
-                        <Menu text="Help">
-                            <items>
-                                <MenuItem text="About" />
-                            </items>
-                        </Menu>
+
                     </menus>
                 </MenuBar>
             </top>
@@ -112,7 +108,7 @@
                                 </ToolBar>
 
                                 <!-- Visualization Pane - expandable -->
-                                <Pane fx:id="visualizationPane" prefHeight="618.0" prefWidth="514.0" VBox.vgrow="ALWAYS" />
+                                <Pane fx:id="visualizationPane" prefHeight="618.0" prefWidth="514.0" VBox.vgrow="ALWAYS"  />
                             </VBox>
                         </children>
                     </AnchorPane>
