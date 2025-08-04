@@ -50,3 +50,7 @@ A JavaFX-based interactive 3D viewer for exploring human anatomical models — c
 git clone https://github.com/<your-username>/human-anatomy-viewer.git
 cd human-anatomy-viewer
 mvn clean install
+
+## 🎥 Demo
+
+📽️ [Click here to watch the demo video](demo.mp4)
