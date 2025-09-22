@@ -1,5 +1,0 @@
-mvn clean compile exec:java -Pcli
-mvn exec:java -Pcli -Dexec.args="bone hand"
-
-
-
